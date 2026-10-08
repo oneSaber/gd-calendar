@@ -109,11 +109,12 @@ def match_music_idol_franchise(title: str) -> str | None:
     return None
 
 
-# ⚠️ 实测坑：「阵容」字段里混进**应援物/周边名**，会被误当成演出人员。
-# 例：「koyo生诞祭应援」的阵容是「Koyo_Digitalduel-1018生诞祭版」——
-#     这是应援物名（带日期数字 + 版本后缀），不是团体。
-# 判据：出现在阵容里的名字若含「应援 / 周边 / 特典 / 物贩 / 生诞祭版 / 日期数字码」
-# 等字样，就不算演出人员。
+# ⚠️ 实测坑：「阵容」字段里会混进**应援物 / 周边名**。
+# 例：「koyo生诞祭应援」的阵容写成「Koyo_Digitalduel-1018生诞祭版」——
+#     但同时**包含已知地偶团体名 DigitalDuel**。
+#     所以判据不能只看「有没有商品字样」，而要**先看有没有命中知识库**：
+#       * 命中知识库（地偶/女子乐队/ACG 团体）→ 是演出人员，放行
+#       * 没命中且带商品字样 → 不是演出人员，拒绝
 _NON_PERFORMER_RE = re.compile(
     r"应援|應援|周边|周邊|特典|物贩|物販|限定版|生诞祭版|生誕祭版|"
     r"纪念版|紀念版|版本|ver\.?\s*\d|_\d{4}|-\d{4}|\d{4}版",
@@ -121,12 +122,31 @@ _NON_PERFORMER_RE = re.compile(
 )
 
 
-def _looks_like_performer(name: str) -> bool:
-    """阵容里的这个条目像不像真正的演出人员。"""
+def _looks_like_performer(name: str, kb: Any = None) -> bool:
+    """阵容里的这个条目像不像**真正的演出人员**。
+
+    先查知识库（最可靠），再退回「没有商品字样」的结构判据。
+    """
     s = (name or "").strip()
     if len(s) < 2:
         return False
+    # 1) 命中知识库的团体名 → 是演出人员（即使拼了应援物后缀）
+    if kb is not None:
+        entry, how = kb.lookup(s)
+        if entry is not None and how in ("name", "alias"):
+            return True
+    # 2) 没命中知识库：带商品/版本字样的一律不当演出人员
     return not _NON_PERFORMER_RE.search(s)
+
+
+def _lineup_performers(item: Any, kb: Any = None) -> list[str]:
+    """从场次的阵容里挑出真正的演出人员名字。"""
+    out: list[str] = []
+    for n in (getattr(item, "lineup", None) or []):
+        name = getattr(n, "name", "") or ""
+        if _looks_like_performer(name, kb):
+            out.append(name)
+    return out
 
 
 @dataclass
@@ -157,36 +177,48 @@ class PublishPolicy:
     trusted: tuple[str, ...] = ()
     # 允许放行的音乐/偶像动画品牌；默认用内置白名单
     use_franchise_rule: bool = True
+    # 演员知识库（用于识别「阵容里含已知团体名」的情况）
+    kb: Any = None
 
-    def accepts(self, item: Any) -> bool:
-        """是否发布这条场次。"""
-        return self.rejected_reason(item) is None
+    def rejects(self, item: Any) -> str | None:
+        """返回 None 表示通过；否则返回**拒绝原因**（便于日志审计）。
 
-    def rejected_reason(self, item: Any) -> str | None:
-        """返回 None 表示通过；否则返回**被拒绝的原因**（便于日志审计）。"""
+        规则（维护者定，**或**关系）：
+
+          大前提：这条内容与 ACG 有关（`is_idol` / `is_girl_band` / `is_acg`
+                  任一为真，即已进入垂类范围）
+          小前提（满足任一即放行）：
+            a) 演出阵容里有**地偶 / ACG 乐队 / 女子乐队**（知识库可识别）
+            b) 活动主题与**日本 ACG 音乐或偶像**有关（品牌白名单）
+            c) 命中已核实的具体厂牌/企划名（事实，不需佐证）
+        """
         ev = getattr(item, "event", None)
         if ev is None:
             return "无 event"
+        # 大前提：与 ACG 有关
         if not any(bool(getattr(ev, f, False)) for f in VERTICAL_FLAGS):
-            return "非垂类"
+            return "与 ACG 无关（非垂类）"
         if not self.require_lineup:
             return None
 
         title = ev.title or ""
-        # 例外 1：已核实的具体团体/企划 → 事实，不需阵容佐证
+        # c) 已核实的具体厂牌/企划 → 事实
         if any(t.lower() in title.lower() for t in self.trusted):
             return None
-        # 例外 2：日本音乐/偶像动画的 only 展 → 内容本身就是垂类
+        # b) 日本 ACG 音乐 / 偶像主题
         if self.use_franchise_rule and match_music_idol_franchise(title):
             return None
-        # 常规：必须有**真正的演出人员**（排除应援物/周边名混进阵容的情况）
-        lineup = [
-            n for n in (getattr(item, "lineup", None) or [])
-            if _looks_like_performer(getattr(n, "name", "") or "")
-        ]
-        if lineup:
+        # a) 演出阵容里有垂类团体（先查知识库，能识别「名字里拼了后缀」的情况）
+        if _lineup_performers(item, self.kb):
             return None
-        return "无有效演出名单且非音乐/偶像动画品牌"
+        return "与 ACG 有关但无垂类演出阵容、也非日本 ACG 音乐/偶像主题"
+
+    # 语义别名：accepts 读起来更顺
+    def accepts(self, item: Any) -> bool:
+        return self.rejects(item) is None
+
+    def rejected_reason(self, item: Any) -> str | None:
+        return self.rejects(item)
 
 
 # 静态站点里不该出现的文件（占位图/预览图之类）
@@ -292,10 +324,16 @@ async def build_static_site(
     policy: PublishPolicy | None = None,
 ) -> BuildStats:
     stats = BuildStats()
-    if policy is None:
+    # 策略需要演员知识库：用于识别「阵容里含已知垂类团体名」的情况
+    # （例如「Koyo_Digitalduel-1018生诞祭版」里含地偶团体 DigitalDuel）。
+    if policy is None or policy.kb is None:
+        from app.normalize.artist_store import load_knowledge_base
         from app.parsers.text_zh import _IDOL_GROUPS
 
-        policy = PublishPolicy(require_lineup=True, trusted=tuple(_IDOL_GROUPS))
+        kb = await load_knowledge_base(session)
+        if policy is None:
+            policy = PublishPolicy(require_lineup=True, trusted=tuple(_IDOL_GROUPS))
+        policy.kb = kb
 
     # ---- 1) 场次（含展开的关联对象，前端零 join）----
     items, total = await service.query_occurrences(
@@ -325,10 +363,7 @@ async def build_static_site(
                 log.info("  排除（%s）：%s", reason, (i.event.title or "")[:48])
         # 记录**特殊规则放行**的条目：这些没有阵容佐证，必须可审计
         for i in kept:
-            if any(
-                _looks_like_performer(getattr(n, "name", "") or "")
-                for n in (getattr(i, "lineup", None) or [])
-            ):
+            if _lineup_performers(i, policy.kb):
                 continue
             ev = i.event
             title = ev.title or ""

@@ -183,9 +183,19 @@ async def reclassify_events(
         verdict = classify_lineup(names, kb)
         result["unknown_artists"].update(verdict.unknown)  # type: ignore[union-attr]
 
+        title = ev.title_display or ev.title_raw or ""
         before = {f: bool(getattr(ev, f)) for f in FLAG_FIELDS}
+        # ⚠️ 把阵容**喂给标题分类器**：阵容含已知垂类团体时，可以压过
+        # 展会/应援/情报类噪音判据。实测「koyo生诞祭应援」标题含「应援」
+        # 被当噪音，但阵容是「Koyo_Digitalduel-1018生诞祭版」（含地偶团体）。
+        cls = tz.classify(title, "", lineup=names)
+        title_flags = {
+            "is_idol": cls.is_idol,
+            "is_girl_band": cls.is_girl_band,
+            "is_acg": cls.is_acg,
+        }
         after = {
-            f: before[f] or bool(getattr(verdict, f))
+            f: before[f] or title_flags[f] or bool(getattr(verdict, f))
             for f in FLAG_FIELDS
         }
         if after == before:

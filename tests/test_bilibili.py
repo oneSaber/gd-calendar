@@ -408,12 +408,20 @@ class TestLiveItemShape:
 
 class TestAreaCodes:
     def test_guangdong_codes(self):
-        """实测：点「广州」后发出的是 area=440100（行政区划码，不是秀动的 cityCode）。"""
+        """实测：点「广州」后发出的是 area=440100（行政区划码，不是秀动的 cityCode）。
+
+        ⚠️ 本用例在 2026-10 探测后收窄过：会员购**城市选择器只有 10 个城市**，
+        广东仅广州 / 深圳 / 珠海可点。佛山、东莞的按钮在页面上找不到，
+        所以从映射表里移除了 —— 保留「写了也不会生效」的假配置更危险。
+        """
         assert b.area_code_for("广州") == "440100"
         assert b.area_code_for("深圳") == "440300"
-        assert b.area_code_for("佛山") == "440600"
-        assert b.area_code_for("东莞") == "441900"
         assert b.area_code_for("珠海") == "440400"
+
+    def test_removed_cities_return_none(self):
+        """佛山 / 东莞在会员购页面点不到 → 必须返回 None，而不是留个假码。"""
+        assert b.area_code_for("佛山") is None
+        assert b.area_code_for("东莞") is None
 
     def test_unknown_city_returns_none(self):
         # 没有实测码的城市必须返回 None（调用方跳过，绝不瞎猜）

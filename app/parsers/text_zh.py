@@ -1399,7 +1399,27 @@ class ClassifyResult:
         )
 
 
-def classify(title: str, extra: str = "") -> ClassifyResult:
+# 演员知识库的惰性缓存（在 _lineup_kb() 里填充；False 表示不可用）
+_LINEUP_KB: Any = None
+
+
+def _lineup_kb():
+    """演员知识库的惰性单例（**延迟导入**避免与 artist_kb 循环依赖）。"""
+    global _LINEUP_KB
+    if _LINEUP_KB is None:
+        try:
+            from app.normalize.artist_kb import ArtistKnowledgeBase
+
+            _LINEUP_KB = ArtistKnowledgeBase()
+        except Exception:  # noqa: BLE001
+            # 知识库不可用时退化为空库：不影响标题判定
+            _LINEUP_KB = False
+    return _LINEUP_KB or None
+
+
+def classify(
+    title: str, extra: str = "", lineup: Any = None
+) -> ClassifyResult:
     """分类：返回 ClassifyResult（可解包成 (kind, is_idol, tags)）。
 
     判定顺序（实测调优）：
@@ -1410,6 +1430,11 @@ def classify(title: str, extra: str = "") -> ClassifyResult:
     同时独立判定两个正交标记（可叠加）：
       * `is_girl_band` —— 女子乐队（全女子编制）
       * `is_acg`       —— ACG / 二次元 / 同人 / 宅向
+
+    `lineup`（可选）：演出人员名单。若其中含**已知垂类团体**（地偶/女子乐队/ACG），
+    则视为「确实是演出」，**压过**展会/应援/情报类噪音判据。
+    实测场景：「koyo生诞祭应援」标题含「应援」，但阵容是
+    「Koyo_Digitalduel-1018生诞祭版」（含地偶团体 DigitalDuel）。
     """
     hay = f"{title} {extra}"
     low = hay.lower()
@@ -1445,11 +1470,22 @@ def classify(title: str, extra: str = "") -> ClassifyResult:
     #
     # 取舍：**只撤销 is_idol，保留 is_acg**。理由：
     #   * ACG 是「内容品类」（同人/二次元），展会确实属于该品类，信息不该丢；
-    #   * 「不把展会放进日历」由 `kind='other'` + `exclude_other` 负责，
-    #     不需要在这里清标记 —— 否则「品类」与「是否演出」两件事混在一起。
-    # 放在具体厂牌名判定**之后**：标题若同时含已核实厂牌名（真演出），
-    # 以厂牌名为准，不因出现「展」字被误杀。
+    #   * 「不把展会放进日历」由 `kind='other'` + `exclude_other` 负责。
+    #
+    # ⚠️ **阵容优先**：若标题同时含已核实厂牌名、或调用方给了 lineup 且其中
+    #    含已知垂类团体，则以事实为准，不因出现「应援/情报」等字样误杀。
+    #    实测：「koyo生诞祭应援」标题含「应援」被当噪音，但阵容是
+    #    「Koyo_Digitalduel-1018生诞祭版」（含地偶团体 DigitalDuel）—— 确实是演出。
     _has_known_group = any(g.lower() in low for g in _IDOL_GROUPS)
+    if lineup:
+        kb_view = _lineup_kb()
+        for raw_name in (lineup if kb_view is not None else ()):
+            entry, how = kb_view.lookup(str(raw_name))
+            if entry is not None and how in ("name", "alias") and entry.kind in (
+                "idol_group", "girl_band", "acg_unit"
+            ):
+                _has_known_group = True
+                break
     if not _has_known_group and (
         _EXHIBITION_RE.search(hay)
         or _NON_EVENT_NOISE_RE.search(hay)
@@ -1458,6 +1494,7 @@ def classify(title: str, extra: str = "") -> ClassifyResult:
         is_idol = False
         if "非演出" not in tags:
             tags.append("非演出")
+
 
     # ---- 女子乐队：命中 + 不是偶像场 ----
     is_girl_band = (

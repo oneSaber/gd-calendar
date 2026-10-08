@@ -35,6 +35,13 @@ def _build_parser() -> argparse.ArgumentParser:
     ak = sub.add_parser("artist-kb", help="同步演员知识库到 artist 表")
     ak.add_argument("--dry-run", action="store_true", help="只看会改多少，不落库")
 
+    ba = sub.add_parser(
+        "bili-accounts",
+        help="为知识库里的垂类团体发现 B站 官方账号（供动态通道采集）",
+    )
+    ba.add_argument("--limit", type=int, default=0, help="只处理前 N 个（0=全部）")
+    ba.add_argument("--dry-run", action="store_true", help="只搜索不写库")
+
     rc = sub.add_parser(
         "reclassify", help="按阵容重算活动分类（比标题可靠，与标题判定取并集）"
     )
@@ -163,6 +170,36 @@ async def cmd_reclassify(args) -> int:
     return 0
 
 
+async def cmd_bili_accounts(args) -> int:
+    """为知识库里的垂类团体发现 B站 官方账号。
+
+    用途：B站会员购广东只有 ~17 条/城，但团体**官方账号**会发带阵容的演出预告。
+    """
+    from app.collectors.bili_accounts import discover_accounts
+    from app.db import session_scope
+
+    try:
+        from app.collectors.base import BrowserFetcher
+    except Exception as exc:  # noqa: BLE001
+        print(f"❌ 浏览器不可用：{exc}")
+        return 1
+
+    async with session_scope() as session:
+        async with BrowserFetcher() as browser:
+            res = await discover_accounts(
+                session, browser,
+                limit=args.limit or None,
+                dry_run=args.dry_run,
+            )
+    tag = "（演练）" if args.dry_run else ""
+    print(f"{tag}发现账号 {len(res.found)} 个，跳过 {len(res.skipped)} 个")
+    for a in res.found:
+        print(f"   ✓ {a.name}  mid={a.mid}")
+    for s in res.skipped[:20]:
+        print(f"   · 跳过 {s}")
+    return 0
+
+
 async def cmd_build_static(args) -> int:
     """生成 GitHub Pages 用的只读静态站点。"""
     from pathlib import Path
@@ -282,6 +319,7 @@ def main(argv: list[str] | None = None) -> int:
         "migrate": lambda: cmd_migrate(),
         "backfill": lambda: cmd_backfill(args),
         "artist-kb": lambda: cmd_artist_kb(args),
+        "bili-accounts": lambda: cmd_bili_accounts(args),
         "reclassify": lambda: cmd_reclassify(args),
         "build-static": lambda: cmd_build_static(args),
         "fetch": lambda: cmd_fetch(args),
