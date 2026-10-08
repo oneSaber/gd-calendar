@@ -1218,11 +1218,13 @@ IDOL_HINTS = (
 #   都被判成地偶，进而混进垂类静态站。
 # 「企划」只是「项目/厂牌」的意思，音乐厂牌、说唱专场、戏剧企划都会用 —— 已移除。
 #
-# ⚠️ 但移除它会**漏标**真正的地偶企划（实测：「比邻星球企划｜云响·回声」）。
-# 解决方式不是把泛词放回去（会连带误判），而是补**具体厂牌/组合名**：
-# 这类名字指向明确，不会误伤别的活动。
+# ⚠️ 但移除它会**漏标**真正的地偶企划。解决方式不是把泛词放回去（会连带误判），
+# 而是补**具体厂牌/组合名**：这类名字指向明确，不会误伤别的活动。
+#
+# 维护方式：发现漏标就往这里加名字，并同步在 tests/test_flags.py 里加用例。
 _IDOL_GROUPS = (
     "比邻星球",      # 地偶企划（广州，声音共和 Livehouse）
+    "留声record",    # 珠海乐坊，2026-10-17（由维护者确认为地偶场次）
 )
 BAND_HINTS = (
     "乐队", "樂隊", "band", "巡演", "巡回", "拼盘", "livehouse",
@@ -1367,9 +1369,15 @@ def classify(title: str, extra: str = "") -> ClassifyResult:
     negative = any(h in hay for h in NEGATIVE_HINTS)
 
     is_idol = idol_score > band_score
-    # 具体厂牌/组合名一律判为地偶：这些名字指向唯一，不需要靠分数博弈
-    if any(g in hay for g in _IDOL_GROUPS):
+    # 具体厂牌/组合名一律判为地偶：这些名字指向唯一，不需要靠分数博弈。
+    # ⚠️ 必须用 low（已小写）来比对：真实标题里有「留声RECORD」这种全大写写法，
+    # 拿小写关键字去搜原始 hay 会漏标（实测踩过）。同时容忍中间的空格。
+    if any(g.lower() in low for g in _IDOL_GROUPS):
         is_idol = True
+    else:
+        squashed = re.sub(r"\s+", "", low)
+        if any(re.sub(r"\s+", "", g.lower()) in squashed for g in _IDOL_GROUPS):
+            is_idol = True
 
     # ---- 女子乐队：命中 + 不是偶像场 ----
     is_girl_band = (

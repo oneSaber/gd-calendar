@@ -76,9 +76,11 @@ class TestIdolPrecision:
     """
 
     @pytest.mark.parametrize("text", [
-        "留声RECORD音乐企划",
+        # ⚠️ 注意：「留声RECORD音乐企划」曾在这组里（被判为非地偶），
+        # 但维护者确认它是地偶场次，已移入 _IDOL_GROUPS 并挪到下面那组用例。
         "马赫mood x 杜逸风「糟糕的日子里」5周年特别企划专场广州站",
         "某某厂牌年度企划演出",
+        "某某音乐企划",
     ])
     def test_pure_plan_word_is_not_idol(self, text):
         assert t.classify(text).is_idol is False
@@ -86,9 +88,18 @@ class TestIdolPrecision:
     @pytest.mark.parametrize("text", [
         "比邻星球企划｜云响·回声",       # 具体地偶企划名，必须认
         "比邻星球 定期公演",
+        "留声RECORD音乐企划",           # ⚠️ 全大写：曾因大小写不匹配漏标
+        "留声record音乐企划",
+        "留声 RECORD 音乐企划",         # ⚠️ 中间带空格也要认
     ])
     def test_known_idol_group_name_is_idol(self, text):
         assert t.classify(text).is_idol is True
+
+    def test_idol_group_match_is_case_insensitive(self):
+        """⚠️ 实测 bug：用小写关键字去搜原始文本，
+        「留声RECORD」（全大写 RECORD）永远匹配不上，导致漏标。"""
+        assert t.classify("留声RECORD音乐企划").is_idol is True
+        assert t.classify("LIUSHENG RECORD 音乐企划").is_idol is False  # 别的名字不该误伤
 
     def test_idol_groups_override_score(self):
         """具体厂牌名优先级高于分数：即使只有名字、没有任何地偶词也要认。"""
