@@ -111,7 +111,9 @@ class Artist(Base, TimestampMixin):
     __tablename__ = "artist"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    kind: Mapped[str] = mapped_column(Text, nullable=False)  # band|idol_group|idol_member|solo|organizer|dj
+    kind: Mapped[str] = mapped_column(
+        Text, nullable=False
+    )  # band|girl_band|idol_group|idol_member|acg_unit|solo|organizer|dj
     name: Mapped[str] = mapped_column(Text, nullable=False)
     name_norm: Mapped[str] = mapped_column(Text, nullable=False)
     name_en: Mapped[str | None] = mapped_column(Text)

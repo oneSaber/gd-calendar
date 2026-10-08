@@ -31,6 +31,16 @@ def _build_parser() -> argparse.ArgumentParser:
     b = sub.add_parser("backfill", help="按当前分类器重算历史数据的分类标记")
     b.add_argument("--dry-run", action="store_true", help="只看会改多少，不落库")
 
+    # 演员知识库：按「演出人员」而不是标题来判定分类
+    ak = sub.add_parser("artist-kb", help="同步演员知识库到 artist 表")
+    ak.add_argument("--dry-run", action="store_true", help="只看会改多少，不落库")
+
+    rc = sub.add_parser(
+        "reclassify", help="按阵容重算活动分类（比标题可靠，与标题判定取并集）"
+    )
+    rc.add_argument("--dry-run", action="store_true", help="只看会改多少，不落库")
+    rc.add_argument("--report", action="store_true", help="打印改动明细")
+
     s = sub.add_parser("build-static", help="导出只读静态站点（给 GitHub Pages 用）")
     s.add_argument("--out", default="docs", help="输出目录，默认 docs/")
     s.add_argument("--no-occurrences", action="store_true",
@@ -103,6 +113,53 @@ async def cmd_backfill(args) -> int:
     print(("（演练）" if args.dry_run else "") + stats.summary())
     for s in stats.samples:
         print(f"   · {s}")
+    return 0
+
+
+async def cmd_artist_kb(args) -> int:
+    """把种子知识库同步进 artist 表（按 name_norm 去重，纠正占位分类）。"""
+    from app.db import session_scope
+    from app.normalize.artist_store import load_knowledge_base, sync_knowledge_base
+
+    async with session_scope() as session:
+        if args.dry_run:
+            kb = await load_knowledge_base(session)
+            print(f"（演练）当前可加载知识库条目：{len(kb)}")
+            return 0
+        stats = await sync_knowledge_base(session)
+        kb = await load_knowledge_base(session)
+    print(f"✅ 知识库同步完成：新增 {stats['added']} / 更新 {stats['updated']} / "
+          f"跳过 {stats['skipped']}")
+    print(f"   当前可加载条目：{len(kb)}（unknown 占位行不参与判定）")
+    return 0
+
+
+async def cmd_reclassify(args) -> int:
+    """按阵容重算活动分类。这是**推断**，改动会写进 review_task 供复核。"""
+    from app.db import session_scope
+    from app.normalize.artist_store import reclassify_events
+
+    async with session_scope() as session:
+        res = await reclassify_events(session, dry_run=args.dry_run)
+
+    tag = "（演练）" if args.dry_run else ""
+    print(f"{tag}扫描 {res['events']} 个活动 → 改动 {res['changed']} 个")
+    g = res["gained"]
+    print(f"   新增标记：地偶 +{g['is_idol']} / 女子乐队 +{g['is_girl_band']} / ACG +{g['is_acg']}")
+    print(f"   无阵容跳过：{res['no_lineup']}（保持标题判定不变）")
+    print(f"   阵容里的陌生演员：{len(res['unknown_artists'])} 个")
+    if args.report:
+        print()
+        print("   改动明细：")
+        for s in res["samples"]:
+            b = "".join(["地" if s["before"]["is_idol"] else "·",
+                         "女" if s["before"]["is_girl_band"] else "·",
+                         "A" if s["before"]["is_acg"] else "·"])
+            a = "".join(["地" if s["after"]["is_idol"] else "·",
+                         "女" if s["after"]["is_girl_band"] else "·",
+                         "A" if s["after"]["is_acg"] else "·"])
+            print(f"     [{b}] -> [{a}]  {(s['title'] or '')[:40]}")
+            print(f"        阵容: {' | '.join(s['lineup'])}   票数: {s['votes']}")
     return 0
 
 
@@ -224,6 +281,8 @@ def main(argv: list[str] | None = None) -> int:
         "initdb": lambda: cmd_initdb(),
         "migrate": lambda: cmd_migrate(),
         "backfill": lambda: cmd_backfill(args),
+        "artist-kb": lambda: cmd_artist_kb(args),
+        "reclassify": lambda: cmd_reclassify(args),
         "build-static": lambda: cmd_build_static(args),
         "fetch": lambda: cmd_fetch(args),
         "stats": lambda: cmd_stats(),

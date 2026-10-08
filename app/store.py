@@ -90,6 +90,8 @@ class Ingestor:
         self.session = session
         self._venue_catalog: dict[str, list[tuple[int, str]]] | None = None
         self._artist_catalog: dict[tuple[str, str], int] = {}
+        # 演员知识库（load_artist_catalog 里填充）。按**演出人员**判定分类。
+        self._artist_kb = None
         # 同一轮内的内存索引：软指纹 → occurrence_id
         self._soft_index: dict[str, list[tuple[int, int, str]]] = {}
         # occurrence_id → 已有 start_at（用于冲突检测）
@@ -136,6 +138,13 @@ class Ingestor:
         rows = (await self.session.execute(select(Artist))).scalars().all()
         for a in rows:
             self._artist_catalog[(a.kind, a.name_norm)] = a.id
+        # 同时加载演员知识库：分类要按**演出人员**判定，而不是只看标题。
+        # 与 artist 表是同一份数据的两种视图（表用于持久化与人工维护，
+        # 知识库对象用于快速匹配 别名/命名规则）。
+        from app.normalize.artist_store import load_knowledge_base
+
+        self._artist_kb = await load_knowledge_base(self.session)
+        log.info("演员知识库加载 %d 条", len(self._artist_kb))
 
     def _invalidate_catalogs(self) -> None:
         self._venue_catalog = None
@@ -200,9 +209,29 @@ class Ingestor:
         key = (kind, norm)
         if key in self._artist_catalog:
             return self._artist_catalog[key]
-        # 乐队/团体判定：地偶信号优先
-        _, is_idol, _ = tz.classify(name_raw)
-        real_kind = kind if kind != "auto" else ("idol_group" if is_idol else "band")
+        # 分类：**先查演员知识库**（按演出人员），再退回命名规则。
+        # 为什么顺序重要：知识库是核实过的事实，而「恋时青空」「比邻星球」
+        # 这类名字不含任何关键词，靠命名规则只会得到占位值。
+        #
+        # ⚠️ 兜底必须是 `unknown` 而不是 `band`：`band` 是**分类结论**，
+        # `unknown` 才是「还没核实」。早期用 band 兜底，导致 282 个没核实过的
+        # 演员全被当成「已知的乐队」，知识库形同失效（每个名字都"认识"）。
+        real_kind = kind
+        if kind in ("auto", None):
+            real_kind = "unknown"
+            kb = self._artist_kb
+            if kb is not None:
+                entry, how = kb.lookup(name_raw)
+                if entry is not None and how in ("name", "alias"):
+                    real_kind = entry.kind
+                elif entry is not None and how == "pattern":
+                    # 命名规则命中：记为**推断**结果，仍可与人工核实结果共存
+                    real_kind = entry.kind
+            if real_kind == "unknown":
+                # 知识库与命名规则都没结论 → 用标题分类器最后一次尝试
+                _, is_idol, _ = tz.classify(name_raw)
+                if is_idol:
+                    real_kind = "idol_group"
         key = (real_kind, norm)
         if key in self._artist_catalog:
             return self._artist_catalog[key]

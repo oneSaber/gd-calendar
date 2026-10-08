@@ -338,12 +338,21 @@ class TestLiveItemShape:
         assert occ.title_raw == "广州·卡拉彼丘同人ONLY·S1"   # 原始写法保留在 title_raw
 
     def test_third_category_name_feeds_classification(self):
-        """实测 `third_category_name="Only同人展"` 是真实品类 → 必须参与分类。"""
+        """`third_category_name="Only同人展"` 是真实品类 → 必须参与分类。
+
+        ⚠️ 本用例的期望在加入「展会识别」后调整过（原期望是 `is_idol=True`）：
+        「同人ONLY展」是**展览**而非演出，本项目明确「非演出内容默认不进日历」，
+        因此它被归为 `other` 且不带垂类标记 —— 由 `exclude_other` 挡在日历之外。
+
+        但品类名**仍然参与分类**这一点必须成立（否则这个字段就白读了）：
+        它会被写进 `tags`，并在 `raw` 里留档供后续复核。
+        """
         occ = b.parse_listv2_payload(_listv2(ITEM_LIVE), "广州")[0]
-        assert occ.kind == "idol_taiban"
-        assert occ.is_idol is True
-        assert "Only同人展" in occ.tags
+        assert occ.kind == "other", "同人展是展览，不是演出"
+        assert occ.is_idol is False
+        assert "Only同人展" in occ.tags, "品类名必须进入 tags（参与分类的证据）"
         assert "独家" in occ.tags
+        assert occ.raw.get("third_category_name") == "Only同人展"
 
     def test_mall_detail_url_preserved(self):
         occ = b.parse_listv2_payload(_listv2(ITEM_LIVE), "广州")[0]
