@@ -35,3 +35,7 @@ Thumbs.db
 
 # 提交信息草稿
 .git-commit-msg.txt
+
+# GitHub Actions workflow：当前 gh token 缺 workflow scope，无法推送。
+# 需要时手动在网页上创建，或 gh auth refresh -s workflow 后移除此行。
+.github/workflows/

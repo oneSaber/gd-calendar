@@ -487,9 +487,15 @@ async function renderListView() {
   selectedId = resolveSelection(data.items);
 
   if (!data.items.length) {
+    // 单日范围（点过日历某天）用「这一天」，否则「这段时间」——
+    // 否则会出现「这段时间没有收录的演出：10月17日 · 珠海」这种自相矛盾的提示
+    const singleDay = S.from === S.to;
     view.renderEmpty(dom.main, {
-      title: '这段时间没有收录的演出',
-      hint: `${rangeLabel(S.from, S.to)}${S.city ? ` · ${S.city}` : ' · 全省'} 没有匹配的场次；可以换个城市、放宽时间范围，或清空筛选条件。`,
+      title: singleDay ? '这一天没有收录的演出' : '这段时间没有收录的演出',
+      hint: `${rangeLabel(S.from, S.to)}${S.city ? ` · ${S.city}` : ' · 全省'} 没有匹配的场次；` +
+        (singleDay
+          ? '可以换个城市，或点上面的时间范围看更宽的区间。'
+          : '可以换个城市、放宽时间范围，或清空筛选条件。'),
       cities: cityChoices(S.city),
       extraHtml: '<div class="state-actions"><button type="button" class="btn" data-retry="1">重新加载</button>' +
         (S.demo ? '' : '<button type="button" class="btn p" data-demo="1">查看内置示例数据</button>') + '</div>',

@@ -69,6 +69,10 @@ class TestIdolPrecision:
       「留声RECORD音乐企划」「马赫mood x 杜逸风…5周年特别企划专场」
     都被判成地偶，混进了只发垂类的静态站。「企划」只是「项目/厂牌」的意思，
     音乐厂牌、说唱专场、戏剧企划都会用 —— 已从 IDOL_HINTS 移除。
+
+    ⚠️ 但移除泛词会**漏标**真正的地偶企划（实测「比邻星球企划｜云响·回声」）。
+    正确处理是补**具体厂牌/组合名**（`_IDOL_GROUPS`），而不是把泛词放回去：
+    具体名字指向唯一，不会连带误伤。下面两组用例锁住这个边界。
     """
 
     @pytest.mark.parametrize("text", [
@@ -78,6 +82,18 @@ class TestIdolPrecision:
     ])
     def test_pure_plan_word_is_not_idol(self, text):
         assert t.classify(text).is_idol is False
+
+    @pytest.mark.parametrize("text", [
+        "比邻星球企划｜云响·回声",       # 具体地偶企划名，必须认
+        "比邻星球 定期公演",
+    ])
+    def test_known_idol_group_name_is_idol(self, text):
+        assert t.classify(text).is_idol is True
+
+    def test_idol_groups_override_score(self):
+        """具体厂牌名优先级高于分数：即使只有名字、没有任何地偶词也要认。"""
+        r = t.classify("比邻星球企划")
+        assert r.is_idol is True
 
     @pytest.mark.parametrize("text", [
         "地偶定期公演 vol.3",
