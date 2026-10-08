@@ -371,7 +371,7 @@ class TestClassify:
             ("星屑公演 Vol.12", None, True),
             ("痛仰乐队「不败」巡演 广州站", "tour_stop", False),
             ("噪音拼盘 #37：三支本地乐队", "taiban", False),
-            ("广州·金牌得主同人only", None, True),
+            ("广州·金牌得主同人only", None, False),  # 「同人only」不足以证明是偶像演出，见 test_publish_policy
             ("大笑喜剧天河路脱口秀串烧专场", "other", False),
             ("周柏豪粉丝见面演唱会", "other", False),
         ],

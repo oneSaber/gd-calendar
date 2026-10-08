@@ -26,6 +26,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -54,6 +55,80 @@ WEB_DIR = Path(__file__).parent / "web"
 VERTICAL_FLAGS = ("is_idol", "is_girl_band", "is_acg")
 
 
+# --------------------------------------------------------------------------- #
+# 特殊规则：日本**音乐 / 偶像动画**相关的 only 展
+#
+# 维护者判断：BanG Dream! 这类「日本音乐动画 / 偶像动画」的 only 展，
+# 内容本身就是垂类（乐队 / 偶像企划），应当保留 —— 即使列表页没给演出名单。
+#
+# ⚠️ 只放**音乐 / 偶像**向的品牌，不要放游戏或少年漫：
+#     明日方舟 / 型月(FGO) / 卡拉彼丘 / 全职猎人 / 第五人格 / 阴阳师 /
+#     高达 / 重返未来1999 / 特摄 —— 这些的 only 展是普通漫展，不进垂类。
+#   实测这区分是必要的：库里 16 条「同人/only」里只有 2 条属于音乐/偶像向。
+#
+# 维护方式：发现同类品牌就往这里加，并同步加测试用例。
+# --------------------------------------------------------------------------- #
+_MUSIC_IDOL_FRANCHISES: tuple[tuple[str, str], ...] = (
+    ("BanG Dream!", "日本乐队企划（动画+手游+真人乐队）"),
+    ("邦邦", "BanG Dream! 的中文昵称"),
+    ("bangdream", "BanG Dream! 无空格写法"),
+    ("バンドリ", "BanG Dream! 日文名"),
+    ("哭泣少女乐队", "Girls Band Cry，日本乐队动画"),
+    ("Girls Band Cry", "Girls Band Cry 原名"),
+    ("ガールズバンドクライ", "Girls Band Cry 日文名"),
+    ("孤独摇滚", "ぼっち・ざ・ろっく！，日本乐队动画"),
+    ("ぼっちざろっく", "孤独摇滚 日文名"),
+    ("轻音少女", "けいおん！，日本乐队动画"),
+    ("けいおん", "轻音少女 日文名"),
+    ("K-ON", "轻音少女 英文名"),
+    ("偶像大师", "THE IDOLM@STER，日本偶像企划"),
+    ("THE IDOLM@STER", "偶像大师 原名"),
+    ("デレステ", "偶像大师 灰姑娘女孩 音游"),
+    ("LoveLive", "ラブライブ！，日本偶像企划"),
+    ("Love Live", "LoveLive! 带空格写法"),
+    ("ラブライブ", "LoveLive! 日文名"),
+    ("赛马娘", "ウマ娘，日本偶像/音乐向企划"),
+    ("ウマ娘", "赛马娘 日文名"),
+    ("少女歌剧", "少女☆歌劇 レヴュースタァライト"),
+    ("レヴュースタァライト", "少女歌剧 日文名"),
+    ("D4DJ", "日本 DJ / 音乐企划"),
+    ("Project SEKAI", "プロジェクトセカイ，日本音乐节奏游戏"),
+    ("プロセカ", "Project SEKAI 日文简称"),
+    ("世界计划", "Project SEKAI 中文名"),
+    ("学园偶像", "学園アイドルマスター"),
+    ("学園アイドル", "学园偶像大师 日文"),
+)
+
+
+def match_music_idol_franchise(title: str) -> str | None:
+    """命中「日本音乐/偶像动画」品牌则返回品牌名（用于日志与复核）。"""
+    low = (title or "").lower()
+    for name, _desc in _MUSIC_IDOL_FRANCHISES:
+        if name.lower() in low:
+            return name
+    return None
+
+
+# ⚠️ 实测坑：「阵容」字段里混进**应援物/周边名**，会被误当成演出人员。
+# 例：「koyo生诞祭应援」的阵容是「Koyo_Digitalduel-1018生诞祭版」——
+#     这是应援物名（带日期数字 + 版本后缀），不是团体。
+# 判据：出现在阵容里的名字若含「应援 / 周边 / 特典 / 物贩 / 生诞祭版 / 日期数字码」
+# 等字样，就不算演出人员。
+_NON_PERFORMER_RE = re.compile(
+    r"应援|應援|周边|周邊|特典|物贩|物販|限定版|生诞祭版|生誕祭版|"
+    r"纪念版|紀念版|版本|ver\.?\s*\d|_\d{4}|-\d{4}|\d{4}版",
+    re.I,
+)
+
+
+def _looks_like_performer(name: str) -> bool:
+    """阵容里的这个条目像不像真正的演出人员。"""
+    s = (name or "").strip()
+    if len(s) < 2:
+        return False
+    return not _NON_PERFORMER_RE.search(s)
+
+
 @dataclass
 class PublishPolicy:
     """发布口径：**必须能证明这是演出**，不能只凭标题像演出。
@@ -71,28 +146,47 @@ class PublishPolicy:
     这些「同人ONLY」如果真有同人 Live，标题里根本没有线索能区分，
     阵容是唯一可靠判据。
 
-    例外：`trusted` 里的名字是**已核实的地偶团体/企划**（见 artist_kb 的
-    `_IDOL_GROUPS`），命中就无需阵容佐证 —— 那是事实，不是推断。
+    两类例外（都是「内容本身就是垂类」的情况）：
+      1. `trusted`：已核实的地偶团体/企划名（artist_kb 的 `_IDOL_GROUPS`）
+      2. `franchises`：日本**音乐/偶像**动画的 only 展（BanG Dream! 等）
+
+    两类都由 `rejected_reason()` 给出可审计的放行理由。
     """
 
     require_lineup: bool = True
     trusted: tuple[str, ...] = ()
+    # 允许放行的音乐/偶像动画品牌；默认用内置白名单
+    use_franchise_rule: bool = True
 
     def accepts(self, item: Any) -> bool:
         """是否发布这条场次。"""
+        return self.rejected_reason(item) is None
+
+    def rejected_reason(self, item: Any) -> str | None:
+        """返回 None 表示通过；否则返回**被拒绝的原因**（便于日志审计）。"""
         ev = getattr(item, "event", None)
         if ev is None:
-            return False
+            return "无 event"
         if not any(bool(getattr(ev, f, False)) for f in VERTICAL_FLAGS):
-            return False
+            return "非垂类"
         if not self.require_lineup:
-            return True
-        # 1) 已核实的具体团体/企划：无需阵容佐证
-        title = (ev.title or "").lower()
-        if any(t.lower() in title for t in self.trusted):
-            return True
-        # 2) 有其他演出人员 → 是演出
-        return bool(getattr(item, "lineup", None))
+            return None
+
+        title = ev.title or ""
+        # 例外 1：已核实的具体团体/企划 → 事实，不需阵容佐证
+        if any(t.lower() in title.lower() for t in self.trusted):
+            return None
+        # 例外 2：日本音乐/偶像动画的 only 展 → 内容本身就是垂类
+        if self.use_franchise_rule and match_music_idol_franchise(title):
+            return None
+        # 常规：必须有**真正的演出人员**（排除应援物/周边名混进阵容的情况）
+        lineup = [
+            n for n in (getattr(item, "lineup", None) or [])
+            if _looks_like_performer(getattr(n, "name", "") or "")
+        ]
+        if lineup:
+            return None
+        return "无有效演出名单且非音乐/偶像动画品牌"
 
 
 # 静态站点里不该出现的文件（占位图/预览图之类）
@@ -219,17 +313,36 @@ async def build_static_site(
         ]
         log.info("垂类过滤（地偶/女子乐队/ACG）：%d → %d 场次", before, len(items))
 
-    # 发布口径：必须能证明是演出（有阵容，或命中已核实的团体名）
+    # 发布口径：必须能证明是演出（有阵容，或命中已核实的团体名 / 音乐动画品牌）
     before = len(items)
-    rejected = [i for i in items if not policy.accepts(i)]
     if policy.require_lineup:
-        items = [i for i in items if policy.accepts(i)]
+        kept: list[Any] = []
+        for i in items:
+            reason = policy.rejected_reason(i)
+            if reason is None:
+                kept.append(i)
+            else:
+                log.info("  排除（%s）：%s", reason, (i.event.title or "")[:48])
+        # 记录**特殊规则放行**的条目：这些没有阵容佐证，必须可审计
+        for i in kept:
+            if any(
+                _looks_like_performer(getattr(n, "name", "") or "")
+                for n in (getattr(i, "lineup", None) or [])
+            ):
+                continue
+            ev = i.event
+            title = ev.title or ""
+            if any(t.lower() in title.lower() for t in policy.trusted):
+                log.info("  放行（已核实团体名）：%s", title[:48])
+            else:
+                brand = match_music_idol_franchise(title)
+                if brand:
+                    log.info("  放行（音乐/偶像动画品牌「%s」）：%s", brand, title[:48])
+        items = kept
         log.info(
-            "发布口径（需阵容佐证）：%d → %d 场次，排除 %d 条无法证明是演出的内容",
-            before, len(items), len(rejected),
+            "发布口径（需阵容佐证，含音乐/偶像动画品牌例外）：%d → %d 场次，排除 %d 条",
+            before, len(items), before - len(items),
         )
-        for i in rejected[:10]:
-            log.info("  排除（无阵容佐证）：%s", (i.event.title or "")[:48])
 
     log.info("静态导出：%d 场次（库内共 %d）", len(items), total)
 

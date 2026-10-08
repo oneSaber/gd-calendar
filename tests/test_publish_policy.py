@@ -25,12 +25,20 @@ from app.static_build import PublishPolicy
 
 
 def item(title: str, *, lineup=None, is_idol=False, is_acg=False, is_girl_band=False):
-    """造一个查询结果项（模拟 OccurrenceOut）。"""
+    """造一个查询结果项（模拟 OccurrenceOut）。
+
+    lineup 传字符串列表即可，内部转成带 `.name` 的对象 —— 与真实
+    `LineupOut` 的字段形状一致（注意是 `name`，不是 `id`）。
+    """
+    names = [
+        n if hasattr(n, "name") else SimpleNamespace(name=n)
+        for n in (lineup or [])
+    ]
     return SimpleNamespace(
         event=SimpleNamespace(
             title=title, is_idol=is_idol, is_girl_band=is_girl_band, is_acg=is_acg
         ),
-        lineup=lineup or [],
+        lineup=names,
     )
 
 
@@ -58,7 +66,6 @@ class TestRequireLineup:
         "卡拉彼丘同人ONLY·S1",
         "金牌得主同人only",
         "2026型月同人ONLY·Lostbelt",
-        "BanG Dream!梦想协奏曲同人Only·终章如初",
         "月亮计划only同人·coffee",
     ])
     def test_no_lineup_is_rejected(self, policy, title):
@@ -66,6 +73,9 @@ class TestRequireLineup:
 
         这些「同人ONLY」如果真有同人 Live，标题里根本没有线索能区分，
         阵容是唯一可靠判据。
+
+        注意 BanG Dream! **不在**这一组：它属于「音乐/偶像动画品牌」例外，
+        由 TestMusicIdolFranchiseRule 覆盖。
         """
         assert policy.accepts(item(title, lineup=[], is_idol=True)) is False
 
@@ -90,3 +100,92 @@ class TestRequireLineup:
         assert policy.accepts(
             item("次元激战 ACG宿命对决", lineup=["夜一乐队"], is_acg=True)
         ) is True
+
+
+class TestMusicIdolFranchiseRule:
+    """特殊规则：日本**音乐 / 偶像动画**的 only 展保留。
+
+    维护者判断：BanG Dream! 这类品牌内容本身就是垂类（乐队/偶像企划），
+    即使列表页没给演出名单也应当保留。
+
+    ⚠️ 只放音乐/偶像向：游戏、少年漫、特摄的 only 展是普通漫展，不进垂类。
+    这条区分实测必要 —— 库里 16 条「同人/only」只有 2 条属于音乐/偶像向。
+    """
+
+    @pytest.mark.parametrize("title,expected", [
+        ("BanG Dream!梦想协奏曲同人Only·终章如初", "BanG Dream!"),
+        ("所谓正解？【哭泣少女乐队Only Live", "哭泣少女乐队"),
+        ("轻音少女 only展", "轻音少女"),
+        ("LoveLive! 同人only", "LoveLive"),
+        ("偶像大师 only", "偶像大师"),
+        ("孤独摇滚 同人only", "孤独摇滚"),
+        ("赛马娘 only", "赛马娘"),
+        ("少女歌剧 同人only", "少女歌剧"),
+        ("プロセカ only", "プロセカ"),
+    ])
+    def test_music_idol_brands_match(self, title, expected):
+        from app.static_build import match_music_idol_franchise
+
+        assert match_music_idol_franchise(title) == expected
+
+    @pytest.mark.parametrize("title", [
+        "2026型月同人ONLY·Lostbelt",       # FGO 是游戏
+        "卡拉彼丘同人ONLY·S1",             # 射击游戏
+        "全职猎人同人only",                 # 少年漫
+        "明日方舟ONLY同人展",               # 手游
+        "第五人格ONLY同人茶话会",           # 手游
+        "高达only同人展",                   # 机器人动画（非音乐）
+        "箱中奇遇·重返未来:1999 同人ONLY展", # 手游
+        "阴阳师only同人展",                 # 手游
+        "特摄同人ONLY嘉年华",               # 特摄
+    ])
+    def test_non_music_brands_do_not_match(self, title):
+        from app.static_build import match_music_idol_franchise
+
+        assert match_music_idol_franchise(title) is None
+
+    def test_franchise_event_published_without_lineup(self, policy):
+        """音乐动画 only 展：无阵容也发布。"""
+        assert policy.accepts(
+            item("BanG Dream!梦想协奏曲同人Only·终章如初", lineup=[], is_acg=True)
+        ) is True
+
+    def test_rule_can_be_disabled(self):
+        p = PublishPolicy(require_lineup=True, use_franchise_rule=False)
+        assert p.accepts(
+            item("BanG Dream!同人Only", lineup=[], is_acg=True)
+        ) is False
+
+
+class TestNonPerformerNames:
+    """⚠️ 实测坑：阵容字段会混进**应援物/周边名**，不能当成演出人员。
+
+    例：「koyo生诞祭应援」的阵容写成「Koyo_Digitalduel-1018生诞祭版」——
+    带日期数字码与「生诞祭版」版本后缀，是应援物名而不是团体。
+    """
+
+    @pytest.mark.parametrize("name", [
+        "Koyo_Digitalduel-1018生诞祭版",
+        "某某应援周边",
+        "限定版特典",
+        "XXXX-2026",
+        "某团ver.2",
+    ])
+    def test_non_performer_rejected(self, name):
+        from app.static_build import _looks_like_performer
+
+        assert _looks_like_performer(name) is False
+
+    @pytest.mark.parametrize("name", [
+        "DigitalDuel", "恋时青空", "娜娜捏口俱乐部", "月匙Moon-Key",
+        "Ringo乐队", "明日重启", "BO5乐队", "NERUNERU", "唐莉佳",
+    ])
+    def test_real_performer_accepted(self, name):
+        from app.static_build import _looks_like_performer
+
+        assert _looks_like_performer(name) is True
+
+    def test_item_with_only_merch_lineup_is_rejected(self, policy):
+        assert policy.accepts(
+            item("koyo生诞祭应援", lineup=["Koyo_Digitalduel-1018生诞祭版"], is_idol=True)
+        ) is False

@@ -174,11 +174,20 @@ class TestListV2Payload:
         assert occ.price_min == 90.0 and occ.price_max == 200.0
 
     def test_is_idol_by_classify(self):
-        """ONLY 同人场 → is_idol=True，kind 落到地偶族（classify 判定）。"""
+        """⚠️ 本用例的期望在收紧分类器后调整过（原期望 `is_idol=True`）。
+
+        「ONLY 同人场」只说明是 **ACG 品类**，不足以证明是偶像演出：
+        实测「金牌得主同人only」（运动漫）与「全职猎人同人only」（少年漫）
+        标题格式完全相同，靠标题无法区分演出与展会。
+
+        因此分类器只在能证明时才置 `is_idol`；展会/同人only 这类歧义内容
+        交给**发布口径**处理（见 tests/test_publish_policy.py）：
+        「有演出名单就收录」。
+
+        但「同人」仍应点亮 ACG 标记 —— 这是品类信息，不该丢。
+        """
         range_occ = b.parse_listv2_payload(_listv2(ITEM_RANGE), "广州")[0]
-        assert range_occ.is_idol is True
-        assert range_occ.kind == "idol_taiban"
-        assert "Only" in range_occ.tags
+        assert range_occ.is_idol is False, "只有「同人」不足以证明是偶像演出"
         assert "同人" in range_occ.tags and "ACG" in range_occ.tags
 
         # 纯乐队/Livehouse 标题不该被判成地偶

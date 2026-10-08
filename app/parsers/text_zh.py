@@ -1210,9 +1210,24 @@ def parse_status(text: str) -> tuple[str, str | None]:
 IDOL_HINTS = (
     "地偶", "地下偶像", "公演", "定期公演", "生诞", "生誕", "生日祭", "生日sp",
     "卒业", "卒業", "毕业公演", "披露", "特典", "チェキ", "拍立得", "握手会",
-    "idol", "oneman", "one man", "only live", "only", "同人", "アイドル",
+    "idol", "oneman", "one man", "only live", "onlylive", "アイドル",
     "联合公演", "联合live", "偶像", "少女", "女团", "男团", "偶像团体",
 )
+# ⚠️ 收紧了两个过松的词（实测）：
+#   * 单字「only」→ 只保留「only live」。曾经「only」单独当地偶词，
+#     于是「全职猎人同人only」「阿特拉斯同人ONLY展」都被判成地偶。
+#     「only」本身只是「限定」的意思，漫展/周边/签售都爱用。
+#   * 「同人」→ 它是**品类**（ACG）而不是「偶像」信号。
+#     靠它判地偶会把所有同人展拉进垂类。
+#
+# 但完全去掉「only」会让「○○Only Live」失去信号，所以补一条**精确的正向模式**：
+# 只认「only live / onlylive」这种明确表示演出的写法，**不认单独的「同人only」**。
+#
+# ⚠️ 反复试过让「同人only」当地偶信号，最后放弃 —— 因为它根本无法区分：
+#     「金牌得主同人only」（运动漫）与「全职猎人同人only」（少年漫）
+#     标题格式**完全相同**。硬猜只会两边得罪。
+#   歧义交给「发布口径」解决：**有演出名单就收录**（见 static_build.PublishPolicy）。
+_IDOL_ONLY_LIVE_RE = re.compile(r"only\s*live|onlylive|only\s*公演", re.I)
 # ⚠️ 曾把「企划」当地偶词，导致误判（实测）：
 #   「留声RECORD音乐企划」「马赫mood x 杜逸风…5周年特别企划专场」
 #   都被判成地偶，进而混进垂类静态站。
@@ -1250,8 +1265,11 @@ _NON_EVENT_NOISE_RE = re.compile(
 #
 # ⚠️ 判据必须**绑定「展」字**：实测「广州·金牌得主同人only」是**同人 Live**
 #    （是演出，测试预期 is_idol=True），不能因为出现「同人only」就排除。
+#    踩过的坑：写成 `only\s*同人展` 时，正则会先匹配到「only同人」而漏掉后面的
+#    「展」，等于没绑定 —— 同人 Live 被误杀。必须让「展」紧跟其后。
 _EXHIBITION_RE = re.compile(
-    r"漫展|同人展|only展|展销|展会|艺术展|主题展|only\s*同人展|同人\s*only\s*展|"
+    r"漫展|同人展|only展|展销|展会|艺术展|主题展|"
+    r"only\s*同人\s*展|同人\s*only\s*展|"
     r"茶话会|嘉年华|签售|周边|抽奖|图鉴|谷子|摆摊|摊位",
     re.I,
 )
@@ -1404,6 +1422,10 @@ def classify(title: str, extra: str = "") -> ClassifyResult:
     negative = any(h in hay for h in NEGATIVE_HINTS)
 
     is_idol = idol_score > band_score
+    # 「Only Live」是明确的**演出**写法（区别于「Only 展」），单独作为一个正向信号。
+    # 注意这里**不认**单独的「同人only」—— 它在演出与展会之间毫无区分度（见上面的注释）。
+    if _IDOL_ONLY_LIVE_RE.search(hay):
+        is_idol = True
     # 具体厂牌/组合名一律判为地偶：这些名字指向唯一，不需要靠分数博弈。
     # ⚠️ 必须用 low（已小写）来比对：真实标题里有「留声RECORD」这种全大写写法，
     # 拿小写关键字去搜原始 hay 会漏标（实测踩过）。同时容忍中间的空格。
