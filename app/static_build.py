@@ -48,10 +48,52 @@ WEB_DIR = Path(__file__).parent / "web"
 #
 # 为什么在导出阶段过滤而不是让前端筛：
 #   1. 站点定位是「这个垂类的日历」，混进脱口秀、话剧、古典音乐会会稀释它；
-#   2. 数据量小一个数量级（355 → 约 12），静态站更轻，也避免无关信息被转载。
+#   2. 数据量小一个数量级，静态站更轻，也避免无关信息被转载。
 # 判定是**或**关系（任一标记命中即保留），与界面上多选标记的「与」语义不同：
 # 「与」是用户主动收窄，这里是站点范围。
 VERTICAL_FLAGS = ("is_idol", "is_girl_band", "is_acg")
+
+
+@dataclass
+class PublishPolicy:
+    """发布口径：**必须能证明这是演出**，不能只凭标题像演出。
+
+    维护者定的规则（实测验证过它比标题可靠）：
+      「检查演出名单，如果名单有团体就收录」
+
+    依据：秀动的列表页**只在真有演出人员时才给阵容**，所以「阵容为空」
+    本身就是强信号。实测对照：
+      * 呆呆Otori 生诞祭        → 阵容 4 个地偶团体  ✅ 收录
+      * 零~夜时巫女×京阿尼 ONLY → 阵容 4 个团体      ✅ 收录
+      * 全职猎人同人only        → 阵容空            ❌ 排除
+      * 卡拉彼丘同人ONLY·S1     → 阵容空            ❌ 排除
+      * 金牌得主同人only        → 阵容空            ❌ 排除
+    这些「同人ONLY」如果真有同人 Live，标题里根本没有线索能区分，
+    阵容是唯一可靠判据。
+
+    例外：`trusted` 里的名字是**已核实的地偶团体/企划**（见 artist_kb 的
+    `_IDOL_GROUPS`），命中就无需阵容佐证 —— 那是事实，不是推断。
+    """
+
+    require_lineup: bool = True
+    trusted: tuple[str, ...] = ()
+
+    def accepts(self, item: Any) -> bool:
+        """是否发布这条场次。"""
+        ev = getattr(item, "event", None)
+        if ev is None:
+            return False
+        if not any(bool(getattr(ev, f, False)) for f in VERTICAL_FLAGS):
+            return False
+        if not self.require_lineup:
+            return True
+        # 1) 已核实的具体团体/企划：无需阵容佐证
+        title = (ev.title or "").lower()
+        if any(t.lower() in title for t in self.trusted):
+            return True
+        # 2) 有其他演出人员 → 是演出
+        return bool(getattr(item, "lineup", None))
+
 
 # 静态站点里不该出现的文件（占位图/预览图之类）
 _SKIP_COPY = {"preview.png"}
@@ -153,8 +195,13 @@ async def build_static_site(
     *,
     include_occurrences: bool = True,
     vertical_only: bool = True,
+    policy: PublishPolicy | None = None,
 ) -> BuildStats:
     stats = BuildStats()
+    if policy is None:
+        from app.parsers.text_zh import _IDOL_GROUPS
+
+        policy = PublishPolicy(require_lineup=True, trusted=tuple(_IDOL_GROUPS))
 
     # ---- 1) 场次（含展开的关联对象，前端零 join）----
     items, total = await service.query_occurrences(
@@ -171,6 +218,19 @@ async def build_static_site(
             if any(bool(getattr(i.event, f, False)) for f in VERTICAL_FLAGS)
         ]
         log.info("垂类过滤（地偶/女子乐队/ACG）：%d → %d 场次", before, len(items))
+
+    # 发布口径：必须能证明是演出（有阵容，或命中已核实的团体名）
+    before = len(items)
+    rejected = [i for i in items if not policy.accepts(i)]
+    if policy.require_lineup:
+        items = [i for i in items if policy.accepts(i)]
+        log.info(
+            "发布口径（需阵容佐证）：%d → %d 场次，排除 %d 条无法证明是演出的内容",
+            before, len(items), len(rejected),
+        )
+        for i in rejected[:10]:
+            log.info("  排除（无阵容佐证）：%s", (i.event.title or "")[:48])
+
     log.info("静态导出：%d 场次（库内共 %d）", len(items), total)
 
     if include_occurrences:
