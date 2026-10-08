@@ -1,0 +1,14 @@
+{
+  "name": "gd-live-calendar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "广东地下乐队与地下偶像演出日历（本项目主体是 Python，这里只为前端逻辑测试提供 Node 入口）",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/js/*.test.mjs",
+    "serve:static": "python -m http.server 8080 --directory docs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

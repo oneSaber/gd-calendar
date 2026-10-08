@@ -1,0 +1,111 @@
+﻿source,external_id,start_at,city,venue_raw,title,artist_raw,price_min,price_max,is_free,date_precision,confidence,classify,source_url
+showstart,291573,2026-03-06T20:00:00+08:00,广州,游声场FreeField,守麦乐队独立民谣专场｜豆瓣阿比鹿音乐奖年度民谣唱片入围者｜小而美降噪LIVE,守麦乐队,49.0,49.0,False,exact,0.9,band?,https://www.showstart.com/event/291573
+showstart,292361,2026-03-16T20:00:00+08:00,广州,游声场FreeField,Meteorite陨石乐队硬摇滚不插电专场｜每周二晚带你回到80s摇滚乐黄金年代｜游声客厅LIVE,Meteorite陨石乐队,49.0,49.0,False,exact,0.9,band?,https://www.showstart.com/event/292361
+douban,37717357,2026-07-25T00:00:00+08:00,广州,海珠区滨江东路珠江高派,快乐大集合｜在社交中解锁双倍快乐与成长密码,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37717357/
+douban,37904675,2026-07-25T00:00:00+08:00,广州,海珠区同福东路福兴大厦二楼,广州周末好去处｜撸猫读书畅聊～遇见同频有趣的小伙伴,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37904675/
+douban,37865022,2026-08-08T00:00:00+08:00,广州,天河区华利路远洋明珠大厦,「她·语」周末慢聊：一场属于内向者与外向者的友好对话,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37865022/
+douban,37717361,2026-08-08T00:00:00+08:00,广州,天河区华利路远洋明珠大厦,广州故事会｜周末快乐遇见活跃有趣新朋友,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37717361/
+douban,37872650,2026-08-08T00:00:00+08:00,广州,越秀区中山四路 199 号悦尚城,广州有友轻松聚｜ i 人不社恐额 e 人不尴尬慢慢解锁松弛社交,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37872650/
+douban,36853842,2026-08-08T00:00:00+08:00,,春阳台 塱头村青云路18号,春阳台门票【含新展】,,,,False,date_only,0.85,unknown,https://www.douban.com/event/36853842/
+douban,37895915,2026-08-15T00:00:00+08:00,,珠江两岸,9月19日 每周六 珠江两岸徒步认识新朋友活动,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37895915/
+douban,37984739,2026-08-15T00:00:00+08:00,广州,越秀区珠江星火 1926,广州｜周末充电计划，每周认识新朋友,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37984739/
+douban,37984635,2026-08-15T00:00:00+08:00,广州,海珠区市二宫福兴大厦,在广州邂逅一场「慢放时光」 | 治愈系书友分享会,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37984635/
+douban,37994040,2026-08-16T00:00:00+08:00,广州,越秀区中山四路珠江星火1926,广州MBTI破圈社交｜9人周末围坐畅聊，i人也能轻松开口的周末治愈局,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37994040/
+douban,37994407,2026-08-16T00:00:00+08:00,广州,越秀区中山四路珠江星火1926,「斜杆青年」广州周末青年聚会集合地,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37994407/
+showstart,308200,2026-08-22T19:30:00+08:00,广州,大笑喜剧脱口秀广州天河路店,【大笑喜剧】天河路脱口秀串烧专场|周一至周日|吐槽爆笑大会|开心互动|即兴喜剧之夜精品秀,大笑喜剧,85.0,85.0,False,exact,0.9,band?,https://www.showstart.com/event/308200
+douban,37845455,2026-09-05T00:00:00+08:00,,珠江新城,一起来听创业者们的头脑风暴,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37845455/
+douban,38029237,2026-09-05T00:00:00+08:00,,珠江新城A1,【惠州“小塞班”2天】盐洲岛+海螺湾+住海景房+赶海+快艇+扬帆出海,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38029237/
+douban,38033301,2026-09-05T00:00:00+08:00,,珠江新城A1,【行摄莫六公】登顶莫六公瞰清远最美山脊一天徒步,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38033301/
+douban,38033267,2026-09-05T00:00:00+08:00,,珠江新城A1,【深圳大鹏半岛】豪华游艇出海捕鱼，品海鲜大餐,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38033267/
+douban,38037186,2026-09-06T00:00:00+08:00,,乜X都有咖啡便利店,打工旅行咖啡课 边旅行边打工生活,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38037186/
+douban,38036756,2026-09-12T00:00:00+08:00,,珠江新城A1,【闽粤3天精华游】厦门鼓浪屿-泉州-东山岛,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38036756/
+douban,38049476,2026-09-19T00:00:00+08:00,,珠江新城A1,【醉美梯田1天】黑山梯田赏金色稻浪，层叠翻涌，品农家菜！,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38049476/
+douban,37640189,2026-09-24T00:00:00+08:00,,星巴克咖啡(广州天河城店),我们的社交怎么了？,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37640189/
+douban,37766871,2026-09-24T00:00:00+08:00,,星巴克咖啡(广州天河城店),一个关注人味的活动。安排！,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37766871/
+douban,38027423,2026-09-25T00:00:00+08:00,,珠江新城A1,【柳州河池3天】河池三门海+九顿溢流天窗+梧州骑楼城+柳州夜景,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38027423/
+douban,37879534,2026-09-28T00:00:00+08:00,,石楼镇菩山路1号大岭学校 微澜图书馆,公益图书馆志愿者 | 为进城务工家庭子女提供阅读支持和服务,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37879534/
+douban,37901374,2026-09-28T00:00:00+08:00,,长兴路503号广州育华教育集团长虹学校,儿童图书馆志愿者 | 为务工人员子女提供阅读服务,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37901374/
+douban,37689680,2026-09-29T00:00:00+08:00,,南越王博物院（王墓展区）【展览售票】 解放北路867号,【官方售票】【尼罗河的赠礼】古埃及数字与艺术特展,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37689680/
+douban,38046507,2026-10-01T00:00:00+08:00,,莲羊·下一站·新岩彩-重启千年色谱艺术展（第二季） 鹤龙街道黄边三横路一街1号设计殿堂艺术中心,莲羊《下一站·新岩彩——重启千年色谱艺术展（第二季）》,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38046507/
+douban,38086938,2026-10-01T00:00:00+08:00,,太古汇,进化论·私董饭局 | 创业者聚会 拓展人脉 链接资源！,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38086938/
+douban,38078356,2026-10-01T00:00:00+08:00,,广船船台1914·演出现场 东沙街道东塱大街45号广州滨江天地船台1914A馆3层,Wave浪潮·1914广州当代公共艺术季,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38078356/
+showstart,311334,2026-10-01T14:00:00+08:00,广州,纯粹脱口秀club,【广州】用庆坊年度颠覆尺度之作《超级录像带》法外狂徒｜金牌剧场爆笑沉浸式互动喜剧,,179.0,179.0,False,exact,0.9,unknown,https://www.showstart.com/event/311334
+douban,38085558,2026-10-02T00:00:00+08:00,广州,白鹅潭万象城-马赛克·意大利永恒艺术的密码 花地街道白鹅潭万象城L6展览空间（万象影城对面）,马赛克——意大利永恒艺术的密码,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38085558/
+douban,38081707,2026-10-02T00:00:00+08:00,,珠江新城地铁站A1出口直走30米即可,【阳山秦汉古道】阳山小桂林腹地，打卡千年石板古道，探秘无人村落,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38081707/
+douban,38081518,2026-10-02T00:00:00+08:00,,珠江新城地铁站A1出口直走30米即可,【秘境七娘山】打卡深圳最美山峰、行摄山海间、叹无敌海景,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38081518/
+showstart,311190,2026-10-02T15:00:00+08:00,广州,奇妙嘿夜烛光音乐厅(广州塔站),奇妙嘿夜烛光音乐会“天空之城”主题钢琴&小提琴&大提琴演奏,,388.0,388.0,False,exact,0.9,unknown,https://www.showstart.com/event/311190
+showstart,311186,2026-10-02T18:30:00+08:00,广州,奇妙嘿夜烛光音乐厅(广州塔站),奇妙嘿夜烛光音乐会“爱乐之城”主题世界影视曲目钢琴&小提琴&大提琴演奏,,388.0,388.0,False,exact,0.9,unknown,https://www.showstart.com/event/311186
+showstart,311194,2026-10-02T20:20:00+08:00,广州,奇妙嘿夜烛光音乐厅(广州塔站),奇妙嘿夜烛光音乐会最伟大作品流行曲目钢琴&小提琴&大提琴演奏,,388.0,388.0,False,exact,0.9,unknown,https://www.showstart.com/event/311194
+douban,38090046,2026-10-03T00:00:00+08:00,,太古汇,进化论·裸心饭局 | 认识不同行业优秀新伙伴，共进晚餐一起交流！,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38090046/
+douban,38088614,2026-10-04T00:00:00+08:00,广州,越秀区北京南路接官亭3号,暖秋十月 哈他瑜伽 Oct HATHA YOGA,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38088614/
+douban,38086674,2026-10-06T00:00:00+08:00,,黄山鲁,10.6 黄山鲁爬山活动，约伴爬山（免费）,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38086674/
+douban,37354617,2026-10-08T00:00:00+08:00,广州,一支麦小剧场-正佳广场店 天河南街道天河路228号正佳广场5层5D088（体育中心地铁站出入口旁）,【二狗旗下】一支麦小剧场｜天河正佳广场每日脱口秀｜爆笑解压精品秀演出｜开心互动&约会推荐｜打卡精选,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37354617/
+douban,37949983,2026-10-08T00:00:00+08:00,,纯粹脱口秀club 恩宁路永庆坊钟巷8号4层（近星巴克）,广州精品推荐《法外狂徒》｜高能开局—悬疑拉满｜意外的彩蛋｜一票难求,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37949983/
+douban,37590941,2026-10-08T00:00:00+08:00,,顽笑猴脱口秀-飞扬影城正佳店 天河路228号正佳广场7层,天河正佳飞扬影城 | 轻松解压｜爆笑互动交友 | 顽笑猴脱口秀,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37590941/
+douban,37746742,2026-10-08T00:00:00+08:00,,游声场FreeField 华乐路32号「华乐外贸服饰汇」商场最里左,游声降噪客厅，小而美音乐分享会｜国庆黄金周特献｜市中心老CBD，近淘金地铁站,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37746742/
+douban,37949999,2026-10-08T00:00:00+08:00,,雪蕾香氛博物馆(演出展览售票) 龙归街道科泰二路1号之二,雪蕾香氛博物馆,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37949999/
+douban,38013026,2026-10-09T00:00:00+08:00,,广东艺术剧院 广州大道中1229号,盖鸣晖、李淑勤领衔主演 粤剧《帝女花》,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38013026/
+douban,37951158,2026-10-09T00:00:00+08:00,广州,长隆野生动物世界 汉溪大道东299号,广州长隆野生动物世界,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37951158/
+douban,37404074,2026-10-09T00:00:00+08:00,,珠影壹号新空间A馆-音乐剧《时光代理人》广州馆 江海街道新港中路354号(珠影星光城内)珠影壹号新空间,音乐剧《时光代理人》,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37404074/
+douban,38004910,2026-10-10T00:00:00+08:00,广州,体育馆1号馆 景泰街道白云大道南783号,周柏豪「The Blooming Chapter 绽放之章」粉丝见面演唱会 - 广州站,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38004910/
+douban,38077619,2026-10-10T00:00:00+08:00,,网易总部高唐一期D栋电竞馆 思蕴路3号网易总部高唐一期D栋,《第五人格》2026·IVL秋季赛常规赛,,,,False,date_only,0.85,unknown,https://www.douban.com/event/38077619/
+showstart,309486,2026-10-10T19:30:00+08:00,广州,MAOLivehouse广州（永庆坊店）,JORDANN「SOUND THERAPY」2026秋季巡演 广州站,JORDANN,220.0,220.0,False,exact,0.9,band?,https://www.showstart.com/event/309486
+showstart,311213,2026-10-10T19:30:00+08:00,广州,疆进酒·OMNI SPACE 广州 2号馆,3FAD倪子涛“边缘玩家”2026派对·广州站,蒙太奇Whisky/3FAD倪子涛/张泽历/陈峥嵘rAnking,188.0,188.0,False,exact,0.9,unknown,https://www.showstart.com/event/311213
+showstart,307844,2026-10-10T20:00:00+08:00,广州,星海音乐厅 交响乐演奏大厅,【广州】《后来·遇见》籁之音歌行合唱团流行经典歌曲合唱音乐会,,100.0,100.0,False,exact,0.9,unknown,https://www.showstart.com/event/307844
+showstart,308346,2026-10-10T20:00:00+08:00,广州,MAO Livehouse广州中大店（二号馆）,海底时光机《西岸余晖区》巡演 广州站,海底时光机,109.0,109.0,False,exact,0.9,band?,https://www.showstart.com/event/308346
+showstart,308373,2026-10-10T20:00:00+08:00,广州,声音共和Livehouse（广州塔店）,秋籁——器乐摇滚联袂展演 体熊专科 & Jason Kui INSTRUMENTAL LOVE!!,体熊专科/JASON KUI,150.0,150.0,False,exact,0.9,band?,https://www.showstart.com/event/308373
+showstart,303630,2026-10-10T20:00:00+08:00,广州,疆进酒•OMNI SPACE 广州 1号馆,JUMP THE BLUE·MOJOHAND2026跨蓝巡演-广州站,Mojo Hand（魔力手）乐队,100.0,100.0,False,exact,0.9,band?,https://www.showstart.com/event/303630
+showstart,309623,2026-10-10T20:00:00+08:00,广州,CH8蛙厂演艺中心（大学城店）,JinJiBeWater_隼 “自在极意”2026Tour 广州站,JinJiBeWater.隼,328.0,328.0,False,exact,0.9,unknown,https://www.showstart.com/event/309623
+showstart,301940,2026-10-10T20:30:00+08:00,广州,声音共和Livehouse,闪千手呈现｜YĪN YĪN 2026新专辑巡演  广州,Yīn Yīn（YIN YIN）,220.0,220.0,False,exact,0.9,band?,https://www.showstart.com/event/301940
+douban,37588338,2026-10-11T00:00:00+08:00,,"好说喜剧-纯粹俱乐部店 恩宁路永庆坊钟巷8号4层,黄沙地铁站B口步行490米",青深民谣音乐会｜[广州必打卡] [情侣约会必看] 荔湾 永庆坊网红热门拍照打卡｜,,,,False,date_only,0.85,band?,https://www.douban.com/event/37588338/
+douban,37270313,2026-10-11T00:00:00+08:00,,野生神奇剧场 无限极广场B座310单元,儿童魔术剧《魔法笑园》亲子互动魔术｜爆笑魔法家庭喜剧｜野生神奇剧场【魔法笑园】出品,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37270313/
+douban,37488358,2026-10-11T00:00:00+08:00,,野生神奇剧场 无限极广场B座310单元,沉浸式喜剧《不灵不灵：通灵师》 爆笑互动喜剧 | 悬疑戏剧,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37488358/
+douban,37441218,2026-10-11T00:00:00+08:00,,野生神奇剧场 无限极广场B座310单元,三大主题儿童剧「魔法笑园」出品 | 亲子互动魔术喜剧 | 合家欢乐爆笑不停,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37441218/
+douban,37710757,2026-10-11T00:00:00+08:00,,野生神奇剧场 无限极广场B座310单元,儿童魔术剧《许愿神灯》亲子互动魔术｜家庭温馨喜剧丨野生神奇剧场,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37710757/
+showstart,312209,2026-10-11T11:00:00+08:00,广州,MAO Livehouse广州（太古仓店）,呆呆Otori · 2026 生诞祭 ·阴雨天,娜娜捏口俱乐部/ReaLume/恋时青空/DigitalDuel,9.9,9.9,False,exact,0.9,idol?,https://www.showstart.com/event/312209
+showstart,312191,2026-10-11T12:00:00+08:00,广州,声音共和Livehouse（广州塔店）,比邻星球企划｜云响·回声,唐莉佳/曾艾佳,98.0,98.0,False,exact,0.9,idol?,https://www.showstart.com/event/312191
+showstart,311467,2026-10-11T15:30:00+08:00,广州,MAOLivehouse广州（永庆坊店CLUB厅）,所谓正解？【哭泣少女乐队Only Live】,,68.0,68.0,False,exact,0.9,idol?,https://www.showstart.com/event/311467
+showstart,311052,2026-10-11T20:00:00+08:00,广州,光芒enlightening,广州·东方古典与北美爵士的巧妙融合一《弦·无界》友北五重奏音乐会,友北五重奏,108.0,108.0,False,exact,0.9,unknown,https://www.showstart.com/event/311052
+showstart,311283,2026-10-11T20:00:00+08:00,广州,声音共和Livehouse,昆蟲白 2026《自然人》秋季巡演-广州站,昆虫白（甜梅号）,120.0,120.0,False,exact,0.9,band?,https://www.showstart.com/event/311283
+douban,37950342,2026-10-14T00:00:00+08:00,,平安大戏院 华林街道十甫路125号(上下九步行街内),周三《粤语之夜》开放麦【江梓浩策划出品】开花BLOOM脱口秀,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37950342/
+douban,37870348,2026-10-15T00:00:00+08:00,广州,海珠区阅江中路 380 号,2026第140届中国进出口商品交易会（广交会）招商邀请函,,,,False,date_only,0.85,unknown,https://www.douban.com/event/37870348/
+showstart,308805,2026-10-15T20:00:00+08:00,广州,MAOLivehouse广州（永庆坊店）,Peremotka 倒带乐队 2026新专辑巡演 | 飞向尚未命名的地方 广州站,Peremotka,178.0,178.0,False,exact,0.9,band?,https://www.showstart.com/event/308805
+showstart,311477,2026-10-16T10:00:00+08:00,广州,海心沙亚运公园三号平台,屈臣氏HWB全明星狂欢盛典,,0.0,0.0,True,exact,0.9,unknown,https://www.showstart.com/event/311477
+showstart,311350,2026-10-16T20:00:00+08:00,广州,SDlivehouse(北场馆）,新加坡盯鞋洋娃娃Shye「Return」2026巡演 广州站,Happyvodka1922/shye,180.0,180.0,False,exact,0.9,band?,https://www.showstart.com/event/311350
+showstart,310772,2026-10-16T20:00:00+08:00,广州,疆进酒·OMNI SPACE 广州 2号馆,马王2026HorseYear马年专场演出—广州站,Swang多雷/Hayrul海力/王子明/刘炫廷/叶尔林,168.0,168.0,False,exact,0.9,band?,https://www.showstart.com/event/310772
+showstart,311452,2026-10-16T20:00:00+08:00,广州,CH8蛙厂演艺中心（大学城店）,李毅杰PISSY&JarStick《顽疾与天性》2026巡演-广州站,法老Pharaoh/JarStick/小精灵/杨和苏KeyNG/李毅杰PISSY,188.0,188.0,False,exact,0.9,band?,https://www.showstart.com/event/311452
+showstart,307770,2026-10-16T20:00:00+08:00,广州,光芒enlightening,爵士鼓“魔术师” 纽约当代爵士鼓神 Ari Hoenig 携格莱美顶级阵容Tivon Pennicott & Ben Tiberio-广州站,ARI HOENIG TRIO,180.0,180.0,False,exact,0.9,unknown,https://www.showstart.com/event/307770
+showstart,309973,2026-10-16T20:00:00+08:00,广州,MAO Livehouse广州中大店（二号馆）,阿克江新专辑巡演·广州站,阿克江 LilAkin/直火帮 feezy,168.0,168.0,False,exact,0.9,band?,https://www.showstart.com/event/309973
+showstart,307039,2026-10-16T20:00:00+08:00,广州,MAO Livehouse广州（太古仓店）,8bite「落茧」2026巡演  广州站,8bite,129.0,129.0,False,exact,0.9,band?,https://www.showstart.com/event/307039
+showstart,298334,2026-10-16T20:00:00+08:00,广州,星海音乐厅 交响乐演奏大厅,「复刻回忆」Pianoboy高至豪流行钢琴音乐会,Pianoboy 高至豪,380.0,380.0,False,exact,0.9,unknown,https://www.showstart.com/event/298334
+showstart,311950,2026-10-16T20:30:00+08:00,广州,声音共和Livehouse（广州塔店）,狗GOU 2026首次公开巡演-广州站,弥澈乐队/狗,67.0,67.0,False,exact,0.9,band?,https://www.showstart.com/event/311950
+showstart,307602,2026-10-17T15:00:00+08:00,广州,广州海珠大戏院,No Longer Human,刘令飞,180.0,180.0,False,exact,0.9,unknown,https://www.showstart.com/event/307602
+showstart,309365,2026-10-17T15:00:00+08:00,广州,SDlivehouse,情绪集结King-Size Emoride二十周年室内音乐节,吹波糖/闪星TWINKLESTAR/TOOKOO/toa-T/堆填区LANDFILLS/HYPER SLASH超级斩/Nein or Gas Mus無高潮/遗失愿望清单MissingWishes/中西部情绪麻将/What You Don't See,148.0,148.0,False,exact,0.9,unknown,https://www.showstart.com/event/309365
+showstart,310939,2026-10-17T19:00:00+08:00,广州,太空间Livehouse,与安达Live漫游 安达组合2026巡演（广州站）,安达组合,218.0,218.0,False,exact,0.9,band?,https://www.showstart.com/event/310939
+showstart,311095,2026-10-17T19:30:00+08:00,广州,池沼 CHIZHAO LIVEHOUSE（广州科学城店）,RoughGang野火中文说唱派对·广州站,冯政FireDrippin/FAKE持续输出/李子木,78.0,78.0,False,exact,0.9,unknown,https://www.showstart.com/event/311095
+showstart,302471,2026-10-17T19:50:00+08:00,广州,MAO Livehouse广州（太古仓店）,粥粥和小伙2026放轻松巡演-广州站,粥粥和小伙,99.0,99.0,False,exact,0.9,band?,https://www.showstart.com/event/302471
+showstart,309407,2026-10-17T20:00:00+08:00,广州,疆进酒•OMNI SPACE 广州 1号馆,暴躁的兔子「FOR FLOWER」2026 Tour 广州站,江辰/暴躁的兔子,148.0,148.0,False,exact,0.9,unknown,https://www.showstart.com/event/309407
+showstart,311298,2026-10-17T20:00:00+08:00,广州,191space,「义无反顾」逍遥骑士2026巡演 广州站,逍遥骑士乐队/母带失灵ModernSlavery,80.0,80.0,False,exact,0.9,band?,https://www.showstart.com/event/311298
+showstart,310328,2026-10-17T20:00:00+08:00,广州,疆进酒·OMNI SPACE 广州 2号馆,Hogee「从今晚开始」巡演-广州站,Hogee,119.0,119.0,False,exact,0.9,band?,https://www.showstart.com/event/310328
+showstart,310805,2026-10-17T20:00:00+08:00,广州,MAO Livehouse广州中大店（二号馆）,standup说唱派对广州站 嘉宾：绵阳STAR｜Ash-1｜肆,荒野熊/4erxiang/ASH-1/绵阳Star,108.0,108.0,False,exact,0.9,unknown,https://www.showstart.com/event/310805
+showstart,311939,2026-10-18T11:00:00+08:00,广州,SDlivehouse,PoP Star Idol Festival Vol.7 ~ Koyo『Gilded Martyr』生诞,恋音契约/月匙Moon-Key/恋时青空/DigitalDuel/Yours/LAMENTiS,9.9,9.9,False,exact,0.9,idol?,https://www.showstart.com/event/311939
+showstart,305135,2026-10-18T19:30:00+08:00,广州,光芒enlightening,SoundVibe呈现｜Charles Berthoud《极限低音》Play With Fire 贝斯巡演 广州站,Charles Berthoud,200.0,200.0,False,exact,0.9,band?,https://www.showstart.com/event/305135
+showstart,311757,2026-10-18T19:35:00+08:00,广州,广州智都集团篮球队主场赛事,【23场全主场通票】2026-2027赛季CBA广州智都集团篮球队主场赛事常规赛,,1445.0,1445.0,False,exact,0.9,unknown,https://www.showstart.com/event/311757
+showstart,311736,2026-10-18T19:35:00+08:00,广州,南沙体育馆,【3场南沙体育馆套票】2026-2027赛季CBA广州智都集团篮球队主场赛事常规赛,,198.0,198.0,False,exact,0.9,unknown,https://www.showstart.com/event/311736
+showstart,311720,2026-10-18T19:35:00+08:00,广州,南沙体育馆,【南沙】2026-2027赛季CBA广州智都集团篮球队主场赛事单场票,,88.0,88.0,False,exact,0.9,unknown,https://www.showstart.com/event/311720
+showstart,308193,2026-10-18T20:00:00+08:00,广州,MAO Livehouse广州中大店（二号馆）,祁紫檀2026“世界与孤独女王”巡演-广州站,祁紫檀,159.0,159.0,False,exact,0.9,band?,https://www.showstart.com/event/308193
+showstart,306941,2026-10-18T20:00:00+08:00,广州,疆进酒·OMNI SPACE 广州 2号馆,【演出延期 】【10.18广州】鸠鸠Jiojio&Fimoo2026巡演——独立音乐与数学摇滚的碰撞,鸠鸠jiojio/Fimoo,69.0,69.0,False,exact,0.9,band?,https://www.showstart.com/event/306941
+showstart,308954,2026-10-18T20:00:00+08:00,广州,疆进酒•OMNI SPACE 广州 1号馆,万晓利「这一切没有想象的那么糟」20周年秋季巡演·广州站,万晓利,149.0,149.0,False,exact,0.9,band?,https://www.showstart.com/event/308954
+showstart,302697,2026-10-20T20:00:00+08:00,广州,光芒enlightening,纣王老胡&边无才「细嚼慢咽 」巡演 广州站,纣王老胡/边无才,88.0,88.0,False,exact,0.9,band?,https://www.showstart.com/event/302697
+showstart,308935,2026-10-21T20:00:00+08:00,广州,MAO Livehouse广州中大店（二号馆）,Unknown Art 呈现｜Harakiri for the sky 亚洲巡演，奥地利后黑金属大团 广州站,Harakiri for the sky,180.0,180.0,False,exact,0.9,band?,https://www.showstart.com/event/308935
+showstart,310544,2026-10-22T20:30:00+08:00,广州,疆进酒·OMNI SPACE 广州 2号馆,"Unknown Art 呈现｜Sadness 2026 亚洲巡演, 美国后黑/情绪乐团 广州站",Sadness,188.0,188.0,False,exact,0.9,band?,https://www.showstart.com/event/310544
+showstart,310707,2026-10-23T19:00:00+08:00,广州,大湾区文化体育中心-体育场,Charlie Puth: Whatever's Clever！广州站,Charlie Puth,580.0,580.0,False,exact,0.9,unknown,https://www.showstart.com/event/310707
+showstart,306572,2026-10-23T19:30:00+08:00,广州,广州音乐唐人馆livehouse,蓝心羽2026「爱是 love is…」巡回演唱会-广州站,蓝心羽,180.0,180.0,False,exact,0.9,unknown,https://www.showstart.com/event/306572
+showstart,304316,2026-10-23T20:00:00+08:00,广州,MAO Livehouse广州中大店（二号馆）,很美味2026【赏味期】巡演广州站,很美味,128.0,128.0,False,exact,0.9,band?,https://www.showstart.com/event/304316
+showstart,311209,2026-10-23T20:00:00+08:00,广州,SDlivehouse,Drogas mini tour 广州站,1CEKary艾斯凯瑞/Drogas,168.0,168.0,False,exact,0.9,unknown,https://www.showstart.com/event/311209
+showstart,308503,2026-10-23T20:00:00+08:00,广州,MAO Livehouse广州中大店（一号馆）,2026那奇沃夫“Number One Boy”Tour 广州站,那奇沃夫,268.0,268.0,False,exact,0.9,unknown,https://www.showstart.com/event/308503
+showstart,311573,2026-10-23T20:00:00+08:00,广州,声音共和Livehouse（广州塔店）,Me and My Sandcastle “Sun and Moon” 你我之间 广州特别专场,Me and My Sandcastle,98.0,98.0,False,exact,0.9,band?,https://www.showstart.com/event/311573
+showstart,304764,2026-10-23T20:00:00+08:00,广州,太空间Livehouse,Jake Miller「The Spark Tour」-广州站,Jake Miller,298.0,298.0,False,exact,0.9,unknown,https://www.showstart.com/event/304764
+showstart,310069,2026-10-23T20:00:00+08:00,广州,疆进酒·OMNI SPACE 广州 2号馆,Ozielzinho巴西小伙2026乐队巡演  广州站,Ozielzinho巴西小伙,150.0,150.0,False,exact,0.9,band?,https://www.showstart.com/event/310069
+showstart,304176,2026-10-23T20:00:00+08:00,广州,MAO Livehouse广州（太古仓店）,暗杠「太阳·月亮·草地」走歌人2026专辑巡唱 广州站,暗杠,128.0,128.0,False,exact,0.9,unknown,https://www.showstart.com/event/304176
+showstart,308331,2026-10-23T20:30:00+08:00,广州,MAOLivehouse广州（永庆坊店CLUB厅）,泰国人气后摇乐队Hope The Flowers 2026 巡演——BLOSSOM IN THE DARK,Hope The Flowers,128.0,128.0,False,exact,0.9,band?,https://www.showstart.com/event/308331

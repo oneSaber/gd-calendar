@@ -1,0 +1,32 @@
+# 运行
+fastapi==0.142.4
+uvicorn[standard]==0.54.0
+pydantic>=2.7
+pydantic-settings==2.15.0
+
+# 数据库（异步必需 greenlet）
+SQLAlchemy==2.1.4
+greenlet>=3.1
+aiosqlite==0.22.1
+# 生产 PostgreSQL 时启用（二选一）
+# psycopg[binary]>=3.2
+
+# 采集：HTTP
+httpx==0.28.1
+tenacity>=9.0
+selectolax==1.0.0
+feedparser==6.0.14
+python-dateutil>=2.9
+
+# 采集：CDP 无头浏览器（仅标准库实现，无 Playwright 依赖）
+#   需要本机安装 Edge 或 Chrome
+
+# 中文处理
+jieba>=0.42.1
+
+# 调度
+APScheduler==3.11.3
+
+# 测试
+pytest>=8.0
+pytest-asyncio>=0.24

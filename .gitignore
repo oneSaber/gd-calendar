@@ -1,0 +1,37 @@
+# 环境与密钥
+.env
+*.env
+!.env.example
+
+# 数据（数据库 / 快照 / 截图）
+# ⚠️ 只忽略数据库与抓取快照；`docs/data/*.json` 是静态站的数据，**必须提交**
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/snapshots/
+data/shots/
+data/posters/
+
+# 临时截图（CDP 验证产物）
+app/web/_*.png
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 测试与工具缓存
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# �ύ��Ϣ�ݸ�
+.git-commit-msg.txt

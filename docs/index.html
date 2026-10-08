@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>广东地下演出日历 · GD Live Calendar</title>
+<meta name="description" content="聚合广东（广州 / 深圳 / 佛山 / 东莞 / 珠海 / 中山 / 惠州 / 汕头）地下乐队与地下偶像演出的可订阅日历：时间轴 + 月历 + 详情，支持 .ics 订阅。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E0E10'/%3E%3Crect x='6' y='9' width='3' height='16' rx='1.5' fill='%234C8DFF'/%3E%3Crect x='12' y='9' width='3' height='16' rx='1.5' fill='%23FF5FA2'/%3E%3Crect x='18' y='9' width='3' height='16' rx='1.5' fill='%23EDEDED' opacity='.45'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- 示例数据横幅：?demo=1 或 API 不可用降级时显示 -->
+<div class="demo-note" id="demo-banner" hidden>
+  ⚠️ 当前显示<b>内置示例数据</b>（合成排期，非真实演出）：用于在后端未启动时演示界面与交互。去掉地址栏的 <code>demo=1</code> 即回到真实数据。
+</div>
+
+<!-- 静态站点横幅：GitHub Pages 版本没有后端，明确告知数据是快照、哪些功能不可用 -->
+<div class="demo-note static-note" id="static-banner" hidden>
+  📦 这是<b>只读静态快照</b>（GitHub Pages）：数据为构建时导出，
+  <b>不支持在线采集、纠错投稿与 .ics 订阅</b>。完整功能请本地运行本项目。
+  <span id="static-generated" class="dim"></span>
+</div>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="hrow">
+      <div class="logo">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="2.5" y="5" width="2.6" height="14" rx="1.3" fill="#4C8DFF"/><rect x="7" y="5" width="2.6" height="14" rx="1.3" fill="#FF5FA2"/><rect x="11.5" y="5" width="2.6" height="14" rx="1.3" fill="#EDEDED" opacity=".45"/></svg>
+        </span>
+        广东地下演出日历 <small>GD LIVE CALENDAR</small>
+      </div>
+      <div class="spacer"></div>
+      <div class="search">
+        <span class="search-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <input id="q" type="search" placeholder="搜乐队 / 地偶 / 场地" aria-label="关键词搜索" autocomplete="off">
+      </div>
+      <div class="seg" id="range-seg" role="tablist" aria-label="时间范围">
+        <button type="button" role="tab" data-range="week">本周</button>
+        <button type="button" role="tab" data-range="weekend">本周末</button>
+        <button type="button" role="tab" data-range="month">本月</button>
+      </div>
+      <div class="seg" id="view-seg" role="tablist" aria-label="视图切换">
+        <button type="button" role="tab" data-view="list">列表</button>
+        <button type="button" role="tab" data-view="calendar">月历</button>
+      </div>
+      <button type="button" class="chip green" id="ics-btn">＋ 订阅这个日历</button>
+      <button type="button" class="chip" id="update-btn" aria-live="polite"
+              title="重新抓取各来源的最新演出信息（后台运行，可继续浏览）">
+        <span class="up-ico" aria-hidden="true">↻</span><span id="update-label">更新数据</span>
+      </button>
+    </div>
+    <div class="update-bar" id="update-bar" hidden>
+      <div class="up-progress" role="progressbar" aria-labelledby="update-label"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <i id="update-fill"></i>
+      </div>
+      <div class="up-info">
+        <span id="update-msg" class="up-msg">准备中…</span>
+        <button type="button" class="linkish" id="update-logs-toggle" hidden>查看详情</button>
+      </div>
+      <pre class="up-logs" id="update-logs" hidden></pre>
+    </div>
+    <div class="filters">
+      <div class="chipgroup" id="city-chips" role="group" aria-label="城市筛选"></div>
+      <span class="fdiv" aria-hidden="true"></span>
+      <div class="chipgroup" id="type-chips" role="group" aria-label="类型筛选"></div>
+      <span class="fdiv" aria-hidden="true"></span>
+      <div class="chipgroup" id="flag-chips" role="group" aria-label="独立标记筛选（可多选，多选为「与」关系）"></div>
+      <select id="venue-sel" aria-label="场地"></select>
+      <select id="kind-sel" aria-label="细分类型"></select>
+      <select id="status-sel" aria-label="状态"></select>
+      <button type="button" class="chip" id="price-chip" aria-pressed="false">价格不限</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="cols">
+    <!-- 主区：时间轴列表 / 大月历（由 app.js 注入） -->
+    <main id="main" aria-live="polite" aria-busy="false"></main>
+
+    <!-- 侧栏：迷你月历（列表视图）+ 当日列表（月历视图）+ 详情面板 -->
+    <aside class="side">
+      <section id="mini-cal" class="cal-slot" aria-label="月历"></section>
+      <section id="day-panel" class="panel day-panel" aria-label="当日列表" hidden></section>
+      <section id="detail-panel" class="panel detail-panel" aria-label="演出详情"></section>
+    </aside>
+  </div>
+
+  <footer class="foot">
+    <span id="foot-summary"></span>
+    <span id="foot-stats" class="dim"></span>
+    <span class="spacer"></span>
+    <button type="button" class="linkish" id="about-btn">数据来源与免责声明</button>
+    <button type="button" class="linkish" id="feedback-btn">我要投稿 / 纠错</button>
+    <button type="button" class="linkish" id="copy-link-btn">复制本页链接</button>
+    <button type="button" class="linkish" id="ics-btn-2">订阅 .ics</button>
+  </footer>
+</div>
+
+<!-- 通用弹窗（纠错 / 关于） -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-back" data-modal-close="1"></div>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head">
+      <h3 id="modal-title">标题</h3>
+      <button type="button" class="icon-btn" data-modal-close="1" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- 启动守卫：模块加载失败时给出明确提示，避免白屏 -->
+<div class="boot-error" id="boot-error" hidden>
+  <div class="boot-box">
+    <h3>界面脚本未能加载</h3>
+    <p>本页面使用 <b>ES 模块</b>（<code>js/*.js</code>）。浏览器出于同源策略会拦截通过
+      <code>file://</code> 直接打开的模块脚本，因此请通过 HTTP 访问：</p>
+    <ul>
+      <li>启动后端：由 FastAPI 把 <code>app/web/</code> 挂载为静态站点，访问其地址；</li>
+      <li>或本地临时预览：在本目录执行 <code>python -m http.server 8000</code>，
+        然后打开 <code>http://127.0.0.1:8000/index.html?demo=1</code>。</li>
+    </ul>
+    <p class="dim">若已通过 HTTP 打开仍看到本提示，请检查浏览器控制台的报错。</p>
+  </div>
+</div>
+
+<!-- 功能开关：必须在 app.js 之前加载，且独立于它 ——
+     这样即使模块加载失败或后端不可用，开关依然生效 -->
+<script src="js/features.js"></script>
+<script>window.__DSH_CFG__={"__STATIC__": true, "__FEATURES__": {"ics": false, "update": false, "submit": false, "static": true}};window.__STATIC__=true;window.__FEATURES__=Object.assign({},window.__FEATURES__,window.__DSH_CFG__.__FEATURES__);</script>
+<script type="module" src="js/app.js" onerror="window.__gdBootFail && window.__gdBootFail()"></script>
+<script>
+  // 启动守卫（普通脚本，先于模块执行）：模块被拦截 / 抛错时给出可操作的提示，而不是白屏。
+  window.__gdBootFail = function () {
+    var box = document.getElementById('boot-error');
+    if (box) box.hidden = false;
+  };
+  window.addEventListener('error', function (e) {
+    if (e && e.target && e.target.tagName === 'SCRIPT') window.__gdBootFail();
+  }, true);
+  setTimeout(function () { if (!window.__GD_READY__) window.__gdBootFail(); }, 6000);
+</script>
+</body>
+</html>
