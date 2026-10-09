@@ -45,6 +45,7 @@ data/xhs_notes.json
 data/xhs_leads.md
 data/xhs_artist_accounts.json
 data/xhs_test.json
+data/xhs_schedule_notes.json
 # 无目录前缀的写法也留着：git 的忽略规则对**已追踪过的文件**不生效，
 # 而这两种写法在不同调用场景下命中的路径不同（实测 `xhs_leads.md`
 # 不带前缀时 `data/xhs_leads.md` 没被忽略）。
