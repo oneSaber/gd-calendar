@@ -26,6 +26,7 @@ def main() -> None:
         "活动": q("SELECT COUNT(*) FROM event"),
         "艺人": q("SELECT COUNT(*) FROM artist"),
         "场地": q("SELECT COUNT(*) FROM venue"),
+        # 口径 = event 表里的垂类活动数（event 表天然去重）
         "垂类活动": q(
             "SELECT COUNT(*) FROM event "
             "WHERE is_idol=1 OR is_girl_band=1 OR is_acg=1"
@@ -60,7 +61,7 @@ def main() -> None:
     checks = [
         ("SPEC 场次 426", "426" in spec, actual["场次"], 426),
         ("SPEC 活动 430", "430" in spec, actual["活动"], 430),
-        ("SPEC 艺人 305", "305" in spec, actual["艺人"], 305),
+        ("SPEC 艺人 344", "344" in spec, actual["艺人"], 344),
         ("SPEC 场地 148", "148" in spec, actual["场地"], 148),
         ("SPEC 垂类 22", "22" in spec, actual["垂类活动"], 22),
         ("SPEC 发布 18", "**18**" in spec, published, 18),

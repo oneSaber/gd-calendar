@@ -215,6 +215,44 @@ SEED_ARTISTS: tuple[KnowledgeEntry, ...] = (
 )
 
 
+def _roster_entries() -> tuple[KnowledgeEntry, ...]:
+    """把「现役广州地偶图鉴」转录的团体转成知识条目。
+
+    ⚠️ 为什么单独放一个模块（`gz_idol_roster.py`）而不是写进这里：
+      * 来源不同（图鉴 vs 逐个联网核实），证据格式也不同
+      * 图鉴是**批量**数据，可能有几十条，混进来会让本文件难读
+      * 图鉴缺号（#35–#43）时只改那个模块，不动核心知识库
+
+    ⚠️ 名字带**繁体**（图鉴原文如此），所以别名里必须放简体，
+    否则匹配不上简体文本（微博/秀动）。见 `gz_idol_roster.ALIASES`。
+    """
+    from app.normalize import gz_idol_roster as roster
+
+    return tuple(
+        KnowledgeEntry(
+            name=e["name"],
+            kind=KIND_IDOL_GROUP,
+            aliases=tuple(e["aliases"]),
+            origin_city="广州",
+            confidence=0.9,
+            source="web",
+            evidence=e["evidence"],
+        )
+        for e in roster.to_knowledge_entries()
+    )
+
+
+# 完整知识库 = 逐个核实过的种子 + 图鉴转录
+#
+# ⚠️ 合并顺序：图鉴在后 → 同名时**图鉴条目胜出**（它是更新的整体快照）。
+#    但实测两边名字有繁简差异（「娜娜捏口俱樂部」vs「娜娜捏口俱乐部」），
+#    所以靠**别名**互相打通，而不是靠覆盖。
+SEED_ARTISTS: tuple[KnowledgeEntry, ...] = (
+    *SEED_ARTISTS,
+    *_roster_entries(),
+)
+
+
 # --------------------------------------------------------------------------- #
 # 命名规则（知识库未命中时的兜底推断）
 # --------------------------------------------------------------------------- #
