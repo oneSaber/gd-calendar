@@ -61,6 +61,12 @@ class KnowledgeEntry:
     # 证据：为什么这么判（联网来源或人工确认），便于复核与追责
     evidence: str = ""
     source: str = "manual"        # manual | web | inferred
+    # 该团体的官方账号（由**反向搜索**交叉验证得到，见
+    # scripts/xhs_artist_accounts.py 与 scripts/probe_weibo_accounts.py）。
+    # 用途：按账号追更演出情报，而不是只靠关键词碰运气。
+    xhs: str | None = None        # 小红书账号名
+    weibo: str | None = None      # 微博账号名
+    weibo_uid: str | None = None  # 微博 uid（便于在搜索页定位）
 
 
 @dataclass
@@ -107,6 +113,8 @@ SEED_ARTISTS: tuple[KnowledgeEntry, ...] = (
         origin_city="广州", confidence=0.95, source="web",
         evidence="广州地下偶像团体，B站 Live 映像《向繁星祈愿》原创曲 "
                  "bilibili.com/video/BV1CEr4BJE32",
+        # 反向搜索交叉验证（小红书搜「恋时青空」时官方号反复出现）
+        xhs="恋时青空_AzuraToki_Official",
     ),
     KnowledgeEntry(
         "DigitalDuel", KIND_IDOL_GROUP, aliases=("数字决斗",),
@@ -130,12 +138,14 @@ SEED_ARTISTS: tuple[KnowledgeEntry, ...] = (
         origin_city="广州", confidence=0.85, source="web",
         evidence="地偶团体，出演「REALWORLD 广州 9.0」"
                  "bilibili.com/video/BV1fMcbzYEjd",
+        xhs="ReaLume_Official",
     ),
     KnowledgeEntry(
         "恋音契约", KIND_IDOL_GROUP,
         origin_city="广州", confidence=0.85, source="web",
         evidence="地偶团体，官博 weibo.com/u/7777196754；"
                  "成员 @玉子tamako_恋音契约",
+        xhs="恋音契约",
     ),
     KnowledgeEntry(
         "月匙Moon-Key", KIND_IDOL_GROUP, aliases=("月匙", "Moon-Key", "月匙MK"),
@@ -165,6 +175,7 @@ SEED_ARTISTS: tuple[KnowledgeEntry, ...] = (
         origin_city="广州", confidence=0.8, source="web",
         evidence="偶像团体，有「三周年巡演」公告 "
                  "sina.cn/news/detail/5316539909669606",
+        xhs="山海誓约_OFFICIAL",
     ),
     KnowledgeEntry(
         "留声RECORD音乐企划", KIND_IDOL_GROUP,
