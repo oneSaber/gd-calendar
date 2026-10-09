@@ -22,6 +22,15 @@ export function localDay(iso) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+/**
+ * 「免费场地」包含的场地类型。
+ *
+ * ⚠️ 必须与后端 `app/normalize/venue_type.py` 的 `FREE_TYPES` 保持一致 ——
+ * 否则本地服务与静态站的筛选结果会不一样。这是刻意的重复（前端无法读 Python 常量），
+ * 有测试盯着两边同一份清单。
+ */
+export const FREE_VENUE_TYPES = new Set(['mall', 'park', 'campus']);
+
 function normBool(v) {
   return v === true || v === 'true' || v === '1' || v === 1;
 }
@@ -79,6 +88,19 @@ export function filterOccurrences(items, p = {}) {
     if (isGirl !== null && Boolean(ev.is_girl_band) !== isGirl) return false;
     if (isAcg !== null && Boolean(ev.is_acg) !== isAcg) return false;
     if (venueId && String((it.venue || {}).id || '') !== venueId) return false;
+
+    // 场地类型筛选。⚠️ 后端把 `free` 展开为 mall/park/campus 三类，
+    // 静态站必须**同一语义** —— 否则 GitHub Pages 上点「免费场地」会没有
+    // 任何结果（场次快照里 venue.venue_type 是有的，但需要映射）。
+    const venueType = String(p.venue_type || '').trim();
+    if (venueType) {
+      const vt = String((it.venue || {}).venue_type || '');
+      if (venueType === 'free') {
+        if (!FREE_VENUE_TYPES.has(vt)) return false;
+      } else if (vt !== venueType) {
+        return false;
+      }
+    }
     if (artistId && !(it.lineup || []).some((a) => String(a.id || '') === artistId)) return false;
 
     // 艺人搜索：**只匹配阵容**（与后端 `artist_q` 语义一致）。

@@ -18,7 +18,7 @@ import assert from 'node:assert/strict';
 globalThis.location = { protocol: 'file:', hostname: '', href: 'file:///index.html' };
 globalThis.window = globalThis;
 
-const { filterOccurrences, pickCounts, localDay } =
+const { filterOccurrences, pickCounts, localDay, FREE_VENUE_TYPES } =
   await import('../../app/web/js/static-data.js');
 
 /** 造一个 occurrence，字段形状与 /api/occurrences 一致 */
@@ -201,4 +201,36 @@ test('pickCounts 按城市取计数，缺城市时回退全省', () => {
   assert.equal(pickCounts(file, '')['2026-11-10'].band, 3);
   assert.equal(pickCounts(file, '不存在的城市')['2026-11-10'].band, 3);
   assert.deepEqual(pickCounts(null, '广州'), {});
+});
+
+test('场地类型筛选：free 展开为 mall/park/campus（与后端同语义）', () => {
+  const items = [
+    { event: { title: 'A', kind: 'idol' }, start_at: '2026-11-01T12:00:00+08:00',
+      venue: { id: 1, name: '地王广场', venue_type: 'mall' } },
+    { event: { title: 'B', kind: 'idol' }, start_at: '2026-11-02T12:00:00+08:00',
+      venue: { id: 2, name: 'MAO', venue_type: 'livehouse' } },
+    { event: { title: 'C', kind: 'idol' }, start_at: '2026-11-03T12:00:00+08:00',
+      venue: { id: 3, name: '海心沙公园', venue_type: 'park' } },
+  ];
+  const free = filterOccurrences(items, { venue_type: 'free', include_finished: true });
+  assert.deepEqual(free.map((x) => x.event.title), ['A', 'C']);
+
+  const lh = filterOccurrences(items, { venue_type: 'livehouse', include_finished: true });
+  assert.deepEqual(lh.map((x) => x.event.title), ['B']);
+});
+
+test('FREE_VENUE_TYPES 与后端 FREE_TYPES 清单一致', () => {
+  // 前端无法读 Python 常量，所以这里断言清单本身；改后端时必须同步改前端
+  assert.deepEqual([...FREE_VENUE_TYPES].sort(), ['campus', 'mall', 'park']);
+});
+
+test('场地类型未知的场次不会被 free 误收', () => {
+  const items = [
+    { event: { title: 'X', kind: 'idol' }, start_at: '2026-11-01T12:00:00+08:00',
+      venue: { id: 9, name: '?', venue_type: 'unknown' } },
+    { event: { title: 'Y', kind: 'idol' }, start_at: '2026-11-02T12:00:00+08:00',
+      venue: { id: 10, name: '?' } },
+  ];
+  const free = filterOccurrences(items, { venue_type: 'free', include_finished: true });
+  assert.equal(free.length, 0);
 });
