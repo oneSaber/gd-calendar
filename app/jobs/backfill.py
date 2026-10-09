@@ -60,7 +60,23 @@ async def backfill_flags(session: AsyncSession, *, dry_run: bool = False) -> Bac
         if cls.is_acg:
             stats.acg += 1
 
-        new_flags = (cls.is_idol, cls.is_girl_band, cls.is_acg)
+        # ⚠️ 用**并集**而不是覆盖（实测踩过的坑）。
+        #
+        # 采集时的判定输入比标题多：`extract_from_text` 会带**场地上下文**
+        # 与采集器传入的 `extra_context`。只用标题回填会把那些信号清掉 ——
+        # 实测「10月东莞萤火虫# 地下偶像【夏日青空】」原本 `is_acg=True`
+        # （来自场地/上下文），回填成 False 后**标记就丢了**。
+        #
+        # 取舍：
+        #   * 并集 → 上下文带来的标记不会被误清（安全）
+        #   * 代价 → 词表收紧产生的**过期误标**不能靠回填清掉；
+        #     那类清理交给 `reclassify`（按阵容，会显式给结论）或手动处理，
+        #     比在这里冒险覆盖要好。
+        new_flags = (
+            bool(ev.is_idol) or cls.is_idol,
+            bool(ev.is_girl_band) or cls.is_girl_band,
+            bool(ev.is_acg) or cls.is_acg,
+        )
         old_flags = (bool(ev.is_idol), bool(ev.is_girl_band), bool(ev.is_acg))
         if new_flags != old_flags:
             stats.changed += 1
@@ -69,9 +85,7 @@ async def backfill_flags(session: AsyncSession, *, dry_run: bool = False) -> Bac
                     f"{title[:34]}  {old_flags} → {new_flags}"
                 )
             if not dry_run:
-                ev.is_idol = cls.is_idol
-                ev.is_girl_band = cls.is_girl_band
-                ev.is_acg = cls.is_acg
+                ev.is_idol, ev.is_girl_band, ev.is_acg = new_flags
 
     if not dry_run:
         await session.flush()

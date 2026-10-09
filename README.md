@@ -180,6 +180,32 @@ CI（`.github/workflows/pages.yml`）只负责**发布 `docs/`**，不在 CI 里
 
 两种模式都会先跑一次数据库结构迁移。
 
+### ⚠️ 采集后必须按顺序做后处理（用 `refresh`）
+
+**这一步很容易漏，也很容易把顺序搞错** —— 实测踩过：先 `reclassify`（按阵容）
+再 `backfill`（按标题）会把阵容得到的结论清掉，事件就从日历里消失了
+（「koyo生诞祭应援」就是这样掉出去又恢复的）。
+
+所以用这条组合命令，它把正确顺序固定下来：
+
+```bash
+python -m app.cli refresh                # 采集 + 后处理 + 重建静态站（全流程）
+python -m app.cli refresh --no-fetch     # 跳过采集，只做后处理 + 重建
+python -m app.cli refresh --skip-static  # 不重建静态站
+```
+
+依次执行：**采集 → artist-kb → reclassify → backfill → build-static**，
+任一步失败立即中止并返回错误码。
+
+顺序为什么不能变：
+
+| 步骤 | 依赖 |
+| --- | --- |
+| `artist-kb` | 必须最先 —— `reclassify` 要先把知识库同步进 artist 表 |
+| `reclassify` | 按**阵容**判定（最可靠），应在 `backfill` 之前 |
+| `backfill` | 只按**标题**判定；已改成与现有标记取**并集**（不再清掉阵容结论） |
+| `build-static` | 必须最后 —— 否则导出的是旧标记 |
+
 ### 页面上的「更新数据」按钮
 
 顶栏右上角。点击后：

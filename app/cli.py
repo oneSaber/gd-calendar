@@ -44,6 +44,15 @@ def _build_parser() -> argparse.ArgumentParser:
     ba.add_argument("--limit", type=int, default=0, help="只处理前 N 个（0=全部）")
     ba.add_argument("--dry-run", action="store_true", help="只搜索不写库")
 
+    # 组合命令：把「采集后处理」的正确顺序固定下来，避免顺序搞错
+    rf = sub.add_parser(
+        "refresh",
+        help="采集后处理全流程：artist-kb → reclassify → backfill → build-static",
+    )
+    rf.add_argument("--skip-static", action="store_true", help="不重建静态站")
+    rf.add_argument("--city", default="", help="传给 fetch 的城市（留空=全部启用城市）")
+    rf.add_argument("--sources", default="", help="传给 fetch 的源（留空=全部）")
+    rf.add_argument("--no-fetch", action="store_true", help="跳过采集，只做后处理")
     # 小红书：需要维护者自己的登录态（扫码一次可复用），只读公开笔记
     xh = sub.add_parser("xhs", help="小红书采集（需扫码登录；只读公开笔记）")
     xh.add_argument(
@@ -278,6 +287,71 @@ async def cmd_xhs(args) -> int:
     return 0 if res.logged_in else 2
 
 
+async def cmd_refresh(args) -> int:
+    """采集后处理全流程（**顺序很重要**）。
+
+    ## 为什么要有这条命令
+
+    实测踩过的坑：这几个步骤的顺序会影响结果 ——
+      * `backfill` 只按**标题**重算，若覆盖式写入会把 `reclassify` 按**阵容**
+        得到的结论清掉（已修成并集，但顺序上仍应以阵容为准）
+      * `reclassify` 依赖 `artist-kb` 先把知识库同步进 artist 表
+      * `build-static` 必须最后跑，否则导出的是旧标记
+
+    正确顺序：**采集 → artist-kb → reclassify → backfill → build-static**
+
+    任一步失败立即返回错误码，不再往下走。
+    """
+    steps: list[tuple[str, object]] = []
+
+    if not args.no_fetch:
+        async def _fetch() -> int:
+            return await cmd_fetch(
+                argparse.Namespace(
+                    sources=args.sources or "",
+                    cities=args.city or "",
+                    no_browser=False,
+                    posters=False,
+                )
+            )
+        steps.append(("采集", _fetch))
+
+    async def _kb() -> int:
+        return await cmd_artist_kb(argparse.Namespace(dry_run=False))
+
+    async def _reclassify() -> int:
+        return await cmd_reclassify(argparse.Namespace(dry_run=False, report=False))
+
+    async def _backfill() -> int:
+        return await cmd_backfill(argparse.Namespace(dry_run=False))
+
+    async def _static() -> int:
+        # ⚠️ build-static 需要 out / no_occurrences 参数：不传会 AttributeError
+        return await cmd_build_static(
+            argparse.Namespace(out="docs", no_occurrences=False)
+        )
+
+    steps.append(("同步知识库", _kb))
+    steps.append(("按阵容重分类", _reclassify))
+    steps.append(("按标题回填", _backfill))
+    if not args.skip_static:
+        steps.append(("重建静态站", _static))
+
+    for i, (name, fn) in enumerate(steps, 1):
+        print(f"\n{'=' * 62}\n  [{i}/{len(steps)}] {name}\n{'=' * 62}")
+        try:
+            code = await fn()  # type: ignore[operator]
+        except Exception as exc:  # noqa: BLE001
+            print(f"❌ {name} 失败：{exc}")
+            return 1
+        if code not in (0, None):
+            print(f"❌ {name} 返回错误码 {code}，中止")
+            return int(code)
+
+    print(f"\n{'=' * 62}\n  ✅ refresh 全部完成（{len(steps)} 步）\n{'=' * 62}")
+    print("  建议：git add -A && git commit && git push 让线上同步")
+    return 0
+
 async def cmd_build_static(args) -> int:
     """生成 GitHub Pages 用的只读静态站点。"""
     from pathlib import Path
@@ -399,6 +473,7 @@ def main(argv: list[str] | None = None) -> int:
         "artist-kb": lambda: cmd_artist_kb(args),
         "bili-accounts": lambda: cmd_bili_accounts(args),
         "xhs": lambda: cmd_xhs(args),
+        "refresh": lambda: cmd_refresh(args),
         "reclassify": lambda: cmd_reclassify(args),
         "build-static": lambda: cmd_build_static(args),
         "fetch": lambda: cmd_fetch(args),
