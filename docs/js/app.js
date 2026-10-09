@@ -86,22 +86,20 @@ function applyFeatureFlags() {
   root.classList.toggle('no-update', !FEATURES.update);
   root.classList.toggle('no-submit', !FEATURES.submit);
 
-  if (!FEATURES.ics) {
-    ['ics-btn', 'ics-btn-2'].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.hidden = true;
-    });
-  }
-  if (!FEATURES.submit) {
-    const el = document.getElementById('feedback-btn');
-    if (el) el.hidden = true;
-  }
-  if (!FEATURES.update) {
-    const btn = document.getElementById('update-btn');
-    const bar = document.getElementById('update-bar');
-    if (btn) btn.hidden = true;
-    if (bar) bar.hidden = true;
-  }
+  // ⚠️ 按钮必须**双向**设置 hidden：本函数会被调用两次（先用静态值，再用后端
+  //    /api/features 的值覆盖）。若只在关闭时置 true，第一次调用留下的 true
+  //    永远不会被撤销 —— 于是 .env 里打开开关，顶栏按钮依然是隐藏的。
+  const setHidden = (id, hidden) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = hidden;
+  };
+
+  ['ics-btn', 'ics-btn-2'].forEach((id) => setHidden(id, !FEATURES.ics));
+  setHidden('feedback-btn', !FEATURES.submit);
+  setHidden('update-btn', !FEATURES.update);
+  // 进度条只在关闭时隐藏：打开时它的显隐由 update.js 按任务状态控制，
+  // 这里置 false 会让空进度条在页面加载后就冒出来。
+  if (!FEATURES.update) setHidden('update-bar', true);
 }
 
 init();
