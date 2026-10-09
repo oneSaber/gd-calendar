@@ -97,6 +97,9 @@ function applyFeatureFlags() {
   ['ics-btn', 'ics-btn-2'].forEach((id) => setHidden(id, !FEATURES.ics));
   setHidden('feedback-btn', !FEATURES.submit);
   setHidden('update-btn', !FEATURES.update);
+  // 文档入口只在静态站里有意义：`docs.html` / `SPEC.html` / `DATASOURCES.html`
+  // 是 build-static 生成或复制的，本地 `serve` 时**不存在**（点进去会 404）。
+  setHidden('docs-link', !api.isStatic());
   // 进度条只在关闭时隐藏：打开时它的显隐由 update.js 按任务状态控制，
   // 这里置 false 会让空进度条在页面加载后就冒出来。
   if (!FEATURES.update) setHidden('update-bar', true);

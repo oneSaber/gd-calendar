@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规格书 · 广东地下演出日历</title>
+<style>
+  :root { --fg:#1a1a1a; --dim:#666; --line:#e5e5e5; --accent:#c8102e;
+           --bg:#fff; --code:rgba(128,128,128,.14); }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#e8e8e8; --dim:#9a9a9a; --line:#333; --bg:#161616; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:32px 20px 80px; background:var(--bg); color:var(--fg);
+         font:15px/1.75 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif; }
+  main { max-width:900px; margin:0 auto; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  h1 { font-size:23px; margin:0 0 14px; }
+  h2 { font-size:18px; margin:34px 0 12px; padding-bottom:6px;
+        border-bottom:1px solid var(--line); }
+  h3 { font-size:15.5px; margin:24px 0 8px; }
+  code { background:var(--code); padding:1px 5px; border-radius:4px;
+          font:13px/1 ui-monospace,Consolas,monospace; }
+  pre { background:var(--code); padding:12px 14px; border-radius:8px;
+         overflow-x:auto; }
+  pre code { background:none; padding:0; }
+  table { border-collapse:collapse; width:100%; margin:12px 0; font-size:14px; }
+  th, td { border:1px solid var(--line); padding:7px 10px; text-align:left;
+            vertical-align:top; }
+  th { background:var(--code); font-weight:600; }
+  blockquote { margin:12px 0; padding:8px 14px; border-left:3px solid var(--accent);
+                background:rgba(200,16,46,.06); color:var(--dim); }
+  ul, ol { padding-left:22px; }
+  hr { border:none; border-top:1px solid var(--line); margin:28px 0; }
+  .back { display:inline-block; margin-bottom:18px; font-size:13.5px; }
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="./docs.html">← 文档索引</a>
+<h1>广东地下演出日历 · 规格书</h1>
+<blockquote><strong>版本</strong>：v1.0 · 2026-10-09 <strong>范围</strong>：广东 8 城的地下偶像（地偶）/ 女子乐队 / ACG 乐队演出信息聚合 <strong>线上</strong>：<a href="https://onesaber.github.io/gd-calendar/">https://onesaber.github.io/gd-calendar/</a>（只读静态站） <strong>仓库</strong>：<a href="https://github.com/oneSaber/gd-calendar">https://github.com/oneSaber/gd-calendar</a> <strong>本地</strong>：<code>python -m app.cli serve</code> → <a href="http://127.0.0.1:8000">http://127.0.0.1:8000</a>（完整功能）</blockquote>
+<p>本文档描述<strong>已实现并实测验证</strong>的系统。所有数字来自真实运行，不是设计估算； 所有「不可行」结论都有实测依据。</p>
+<hr>
+<h2>1. 数据源清单（实测整理）</h2>
+<blockquote><strong>权威清单见 <a href="docs/DATASOURCES.md"><code>docs/DATASOURCES.md</code></a></strong> —— 那份由 <code>scripts/make_datasources.py</code> <strong>从源码自动生成</strong> （关键词、账号、场次、阵容覆盖都读代码与数据库），不会与实现失真。 本节是它的说明与取舍解释。</blockquote>
+<h3>1.1 已接入的源</h3>
+<table>
+<tr><th>#</th><th>源</th><th>采集方式</th><th>场次</th><th>阵容覆盖</th><th>状态</th></tr>
+<tr><td>1</td><td><strong>秀动 showstart</strong></td><td><code>httpx</code> 直取 SSR HTML</td><td>287</td><td><strong>247/287（86.1%）</strong></td><td>✅ 主力</td></tr>
+<tr><td>2</td><td><strong>豆瓣同城</strong></td><td>官方 RSS + <code>feedparser</code></td><td>101</td><td>3/101（3.0%）</td><td>✅ 补充</td></tr>
+<tr><td>3</td><td><strong>B站会员购</strong></td><td>CDP 渲染 + 点击 + XHR 拦截</td><td>31</td><td>2/31（6.5%）</td><td>✅ 补充</td></tr>
+<tr><td>4</td><td><strong>微博</strong></td><td>CDP 移动端搜索页 + XHR 拦截</td><td>14</td><td><strong>11/14（78.6%）</strong></td><td>✅ 垂类情报</td></tr>
+<tr><td>5</td><td><strong>小红书</strong></td><td>持久 profile 登录态 + 读公开列表</td><td>0（<strong>未入库</strong>）</td><td>—</td><td>⚠️ 半自动</td></tr>
+</table>
+<blockquote><strong>阵容覆盖为什么最关键</strong>：发布口径要求「演出名单必须能证明是演出」 （见 §4.3）。秀动 86% 的阵容覆盖是整个垂类判定的命脉； 豆瓣几乎不给阵容（3%），所以它主要贡献<strong>标题与场地</strong>。</blockquote>
+<h3>1.2 数据源能力矩阵</h3>
+<table>
+<tr><th>源</th><th>无登录可访问</th><th>标题</th><th>时间</th><th>场地</th><th>阵容</th><th>票价</th><th>海报</th></tr>
+<tr><td>秀动</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌ 见 §3.5</td></tr>
+<tr><td>豆瓣</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td></tr>
+<tr><td>B站会员购</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td></tr>
+<tr><td>微博</td><td>✅（仅搜索页）</td><td>✅</td><td>✅</td><td>⚠️ 常缺</td><td>✅</td><td>⚠️</td><td>✅</td></tr>
+<tr><td>小红书</td><td>❌ 登录墙</td><td>✅（列表）</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
+</table>
+<h3>1.3 已验证<strong>不可行</strong>的源（附实测依据）</h3>
+<p>这些结论都是实测得到的，不要重复尝试：</p>
+<table>
+<tr><th>源</th><th>结论</th><th>实测依据</th></tr>
+<tr><td><strong>小红书笔记正文</strong></td><td>❌ 自动读取不可行</td><td>①登录态直接 <code>nav()</code> 到 <code>/explore/&lt;id&gt;</code> → <strong>404</strong>；②搜到后点 DOM 链接（含坐标点击）→ 卡片坐标 <code>0,0</code>，点击仍 404；③任意点开第一个卡片 → 404，弹层 <code>role=dialog</code> 始终为 0</td></tr>
+<tr><td><strong>微博账号主页</strong></td><td>❌ 不可用</td><td><code>/api/container</code> → <strong>432</strong>；<code>/u/&lt;uid&gt;</code> HTML 返 200 但为 JS 壳（无 <code>$render_data</code>／<code>mblog</code>／<code>card_type</code>）</td></tr>
+<tr><td><strong>中国的 Fandom Wiki</strong></td><td>❌ 网络不可达</td><td><code>chinaidols.fandom.com</code>（中文地偶 Wiki，含结构化活动记录）HTTP 与浏览器均 <code>ERR_CONNECTION_TIMED_OUT</code></td></tr>
+<tr><td><strong>微信公众号</strong></td><td>❌ 已排除</td><td>维护者明确要求不做；且微信侧有验证码拦截（环境异常页）</td></tr>
+<tr><td><strong>抖音</strong></td><td>❌ 登录墙</td><td>项目早期已放弃</td></tr>
+<tr><td><strong>B站会员购翻页</strong></td><td>⚠️ 无意义</td><td>广州 <code>total=17</code>、<code>pagesize=16</code> —— 「下一页」点不到不是 bug，是<strong>只有一页</strong></td></tr>
+<tr><td><strong>B站票务接口直调</strong></td><td>❌ 被拒</td><td><code>listV2</code> 直调返回 <code>success=false</code>／<code>请求非法</code>，参数需浏览器上下文生成</td></tr>
+<tr><td><strong>B站 UP 主搜索</strong></td><td>⚠️ 未跑通</td><td><code>render()</code> 文本里<strong>有</strong> mid，但结果页不发可拦截的 XHR，且 <code>BrowserFetcher</code> 无 <code>cmd</code> 方法读不了 DOM 属性</td></tr>
+</table>
+<h3>1.4 B站的硬限制</h3>
+<ul>
+<li><strong>城市选择器只有 10 个城市</strong>（全国/北京/上海/杭州/广州/深圳/武汉/天津/成都/南京</li>
+<li>自动定位的珠海）。广东仅<strong>广州 / 深圳 / 珠海</strong>可点。</li>
+</ul>
+<p>佛山、东莞的按钮在页面上找不到；中山、惠州、汕头根本没有。 → 所以 <code>BILI_AREA_CODES</code> 只保留实测可用的 3 个 （早期列了佛山/东莞，属于「写了也不会生效」的假配置，已移除）。</p>
+<ul>
+<li>分类筛选（<code>only同人展</code>/<code>展览</code>/<code>演出</code>）的 <code>click()</code> 不生效，需要真实鼠标事件。</li>
+</ul>
+<h3>1.5 免费场地（售票平台拿不到的部分）</h3>
+<p>像<strong>地王广场</strong>（广州商场中庭）这类<strong>免费场地</strong>，演出不上售票平台， 秀动/豆瓣/B站都拿不到。实测结论：</p>
+<ul>
+<li><strong>地王广场确认有地偶</strong>：小红书三条笔记（「广州地王广场也有地偶看？！」</li>
+</ul>
+<p>「地王地偶重开，但是好热啊！」「地王广场偶像活动开摊！」） ＋ 微博逐字证据「IDOL：小幽yuneki_Angelic　TIME：26.9.17　VENUE：广州 地王广场」</p>
+<ul>
+<li><strong>免费场地不只地王广场</strong>：小红书「小快子📷（摄影版）」有一整个系列 ——</li>
+</ul>
+<p>「广州<strong>陈家祠站旁</strong>有地偶看！」「广州<strong>海珠湖旁</strong>有地偶看！」 「广州<strong>中大旁</strong>有地偶看！」</p>
+<ul>
+<li><strong>官方排期渠道尚未找到</strong>：微博关键词、小红书搜索、Fandom Wiki 都试过</li>
+<li>可用的替代情报源：微博<strong>聚合速览</strong>贴（如「本周广州偶活速览」）——</li>
+</ul>
+<p>一次覆盖整周免费/小型场次，是性价比最高的一类</p>
+<hr>
+<h2>2. 爬虫技术方案</h2>
+<h3>2.1 路由优先级（按可靠性从高到低）</h3>
+<pre><code>① SSR HTML 直取          → 最快最稳，秀动用这条
+② XHR JSON 拦截          → 让页面自己请求，我们抄它的 JSON（微博/B站）
+③ 渲染后 DOM 读取        → SPA 页面（小红书）
+④ 截图 + 视觉分析        → 兜底（当前未启用）</code></pre>
+<p><strong>核心原则：绝不逆向接口签名。</strong> ② 的做法是「打开页面 → 拦截网络响应」， 不是伪造签名或注入 Cookie。项目全程不注入 Cookie、不伪造签名、 不改 <code>navigator.webdriver</code> 之类指纹。</p>
+<h3>2.2 各源实现要点</h3>
+<table>
+<tr><th>源</th><th>关键实现</th></tr>
+<tr><td>秀动</td><td>城市页 + <strong>场地页</strong>（场地页给更多阵容）；<code>httpx</code> 直取，无需浏览器</td></tr>
+<tr><td>豆瓣</td><td>官方 RSS；遵守 <code>Crawl-delay: 5</code></td></tr>
+<tr><td>B站</td><td>CDP 打开会员购 → <strong>点城市</strong> → 拦截 <code>/api/ticket/project</code>；翻页用真实点击「下一页」</td></tr>
+<tr><td>微博</td><td><strong>移动端</strong>（<code>m.weibo.cn</code>）搜索页 + 拦截 <code>/api/container</code>；<code>containerid</code> 必须整体 URL 编码</td></tr>
+<tr><td>小红书</td><td>持久 profile（<code>%LOCALAPPDATA%\gd-calendar\xhs-profile</code>）+ 读渲染后卡片</td></tr>
+</table>
+<h3>2.3 关键词策略（微博 / 小红书）</h3>
+<p>每个微博关键词 ≈<strong>33 秒</strong>，所以词表必须精挑 —— 先实测产出量再定表：</p>
+<pre><code>python scripts/probe_weibo_keywords.py     # 微博候选词产出量实测</code></pre>
+<p>微博 16 个词分四类：<strong>聚合速览 / 各地偶 / 免费场地 / ACG 同人</strong>。</p>
+<h3>2.4 合规边界</h3>
+<ul>
+<li>只用公开页面，不绕登录墙（小红书用维护者<strong>自己的</strong>登录态读公开笔记）</li>
+<li>不逆向签名、不伪造指纹、不注入 Cookie</li>
+<li>遵守 <code>robots.txt</code> 与 <code>Crawl-delay</code></li>
+<li>标注来源并给免责声明（页面「数据来源与免责声明」弹窗）</li>
+<li>限速：单源串行，不并发轰炸</li>
+</ul>
+<hr>
+<h2>3. 数据保存结构</h2>
+<h3>3.1 18 张表</h3>
+<pre><code>source              源注册表（showstart/douban/bilibili/weibo/huodong/manual/venue_site）
+event               活动（跨场次共享的语义实体）
+occurrence          场次（时间+场地的具体一次）
+occurrence_source   场次↔源（多个源指向同一场次）
+occurrence_artist   场次↔演员（**阵容**，垂类判定的命脉）
+artist              演员（地偶团体/成员/乐队/主办方）
+artist_member       团体成员关系
+venue               场地
+venue_source_map    场地在各源的 ID 映射
+ticket_tier         票种（含「无料」）
+event_alias         活动别名
+channel             采集频道（自动发现）
+subscription        订阅
+review_task         人工复核队列
+fetch_log           采集日志
+page_cache          页面缓存
+raw_snapshot        原始快照（可重放，保证幂等）
+poster_extraction   海报抽取记录</code></pre>
+<h3>3.2 <code>event</code> / <code>occurrence</code> 分离</h3>
+<p>一次巡回演出 = 1 个 <code>event</code> + N 个 <code>occurrence</code>。这样：</p>
+<ul>
+<li>同一活动在广州/深圳两场不会变成两个「活动」</li>
+<li>系列键（<code>series_key</code> + <code>series_vol</code>）能把「PoP Star Vol.7/Vol.8」串起来</li>
+</ul>
+<h3>3.3 三层判重</h3>
+<ol>
+<li><strong>源内</strong>：<code>external_id</code> 唯一约束</li>
+<li><strong>跨源</strong>：标题归一化 + 时间 + 场地相似度</li>
+<li><strong>人工</strong>：拿不准的进 <code>review_task</code>，<strong>绝不静默合并</strong></li>
+</ol>
+<p>当前待复核 <strong>52</strong> 条（<code>conflict</code> 47 / 按阵容重分类 5）。</p>
+<h3>3.4 时间与时区</h3>
+<ul>
+<li>SQLite 存<strong>朴素时间</strong>，API 输出时统一补 <code>+08:00</code>（<code>aware()</code>）</li>
+<li>日期精度分 <code>datetime</code> / <code>date_only</code> / <code>tbd</code></li>
+<li><strong>过期判定按天</strong>（不是按时刻）—— 否则 <code>date_only</code> 的活动在当天下午就消失了</li>
+</ul>
+<h3>3.5 海报为什么走后端代理</h3>
+<p>豆瓣图片<strong>必须带 <code>Referer</code></strong> 才返回（否则 <strong>418</strong>），B站封面是协议相对 URL。 所以后端代理 + 磁盘缓存（<code>data/posters/</code>，sha256 命名）。</p>
+<p><strong>秀动没有海报</strong>：列表页懒加载、详情页是 SPA 空壳（约 19KB，无 <code>og:image</code>）、 XHR 接口被拒（<code>get_not_support</code>／<code>参数不全</code>）。</p>
+<h3>3.6 垂类标记：三个正交布尔</h3>
+<table>
+<tr><th>标记</th><th>含义</th></tr>
+<tr><td><code>is_idol</code></td><td>地偶 / 地下偶像</td></tr>
+<tr><td><code>is_girl_band</code></td><td>女子乐队</td></tr>
+<tr><td><code>is_acg</code></td><td>ACG / 二次元 / 同人 / 宅向</td></tr>
+</table>
+<ul>
+<li><strong>本地 UI</strong>：多选筛选 = <strong>AND</strong></li>
+<li><strong>静态站垂类过滤</strong>：= <strong>OR</strong>（任一为真即属垂类）</li>
+</ul>
+<p>当前分布：地偶 12 / ACG 7 / 地偶+ACG 2 / 三者 1。</p>
+<hr>
+<h2>4. 交互界面设计</h2>
+<h3>4.1 双形态：本地完整版 + 只读静态站</h3>
+<table>
+<tr><th></th><th>本地（<code>app.cli serve</code>）</th><th>静态站（GitHub Pages）</th></tr>
+<tr><td>数据源</td><td>后端 API（实时查库）</td><td><code>docs/data/*.json</code> 快照</td></tr>
+<tr><td>采集</td><td>✅ 页面「更新数据」按钮</td><td>❌</td></tr>
+<tr><td>订阅 <code>.ics</code></td><td>✅</td><td>❌</td></tr>
+<tr><td>纠错投稿</td><td>✅</td><td>❌</td></tr>
+<tr><td>部署</td><td>双击 <code>启动.bat</code></td><td><code>git push</code> 后自动重建</td></tr>
+</table>
+<p>静态站用 <code>window.__STATIC__</code> 与 <code>window.__FEATURES__</code> 做能力探测： 后端可用则调 API，否则读快照。</p>
+<h3>4.2 界面构成</h3>
+<ul>
+<li><strong>列表视图</strong>：日期分组卡片，含海报、来源角标、标记徽章</li>
+<li><strong>月历视图</strong>：点阵（有演出的日子打点，按数量分级）+ 图例</li>
+<li>⚠️ 实测坑：<code>gridClientW=318</code> vs <code>gridScrollW=353</code> 会溢出 35px，</li>
+</ul>
+<p>修法是 <code>.cell{min-width:0;min-height:0;overflow:hidden}</code> + <code>repeat(7, minmax(0,1fr))</code></p>
+<ul>
+<li><strong>筛选</strong>：城市（8）/ 标记（地偶·女子乐队·ACG）/ 时间范围 / 关键词</li>
+<li><strong>详情</strong>：阵容、票务、来源链接、地图跳转</li>
+<li><strong>静态站横幅</strong>：说明这是数据快照、数据时间、以及为什么不能更新</li>
+</ul>
+<h3>4.3 发布口径（<strong>与 ACG 有关 + 满足任一演出条件</strong>）</h3>
+<pre><code>大前提：这条内容与 ACG 有关（is_idol / is_girl_band / is_acg 任一为真）
+小前提（**或**关系，满足任一即发布）：
+  a) 演出阵容里有地偶 / ACG 乐队 / 女子乐队   ← 最可靠
+  b) 活动主题与日本 ACG 音乐或偶像有关（品牌白名单）
+  c) 命中已核实的具体厂牌/企划名</code></pre>
+<p><strong>为什么 (a) 最可靠</strong>：秀动列表页<strong>只在真有演出人员时才给阵容</strong>。实测对照：</p>
+<table>
+<tr><th>活动</th><th>演出名单</th><th>结果</th></tr>
+<tr><td>呆呆Otori · 2026 生诞祭</td><td>DigitalDuel / ReaLume / 娜娜捏口俱乐部 / 恋时青空</td><td>✅ (a)</td></tr>
+<tr><td>koyo生诞祭应援</td><td>Koyo_<strong>DigitalDuel</strong>-1018生诞祭版</td><td>✅ (a) 名单含已知地偶团体</td></tr>
+<tr><td>BanG Dream! 同人Only</td><td>空</td><td>✅ (b) 音乐动画品牌</td></tr>
+<tr><td>全职猎人同人only</td><td>空</td><td>❌ 少年漫</td></tr>
+<tr><td>卡拉彼丘同人ONLY·S1</td><td>空</td><td>❌ 射击游戏</td></tr>
+</table>
+<p><strong>(b) 品牌白名单</strong>（<code>_MUSIC_IDOL_FRANCHISES</code>，27 种写法）<strong>只放日本音乐/偶像向</strong>： BanG Dream! / 哭泣少女乐队 / 孤独摇滚 / 轻音少女 / 偶像大师 / LoveLive! / 赛马娘 / 少女歌剧 / D4DJ / Project SEKAI。 <strong>不放</strong>游戏与少年漫（明日方舟 / 型月 / 卡拉彼丘 / 全职猎人 / 第五人格 / 阴阳师 / 高达 / 重返未来1999 / 特摄）。</p>
+<h3>4.4 分类顺序：<strong>先看演出人员，再看标题</strong></h3>
+<pre><code>① 阵容命中知识库里的垂类团体？ → 以事实为准（并集，不覆盖）
+② 否则按标题分类（地偶词 vs 乐队词计分）
+③ 具体厂牌名（_IDOL_GROUPS）一票通过
+④ 展会/天气/情报类噪音撤销 is_idol（但保留 is_acg —— 那是品类信息）</code></pre>
+<p>⚠️ 关键取舍：<strong>不做「同人only」的硬猜</strong>。实测「金牌得主同人only」（运动漫） 与「全职猎人同人only」（少年漫）标题格式<strong>完全相同</strong>，靠标题无法区分 —— 歧义交给发布口径解决（有阵容就收录）。</p>
+<hr>
+<h2>5. 当前状态与已知限制</h2>
+<h3>5.1 实测数字（2026-10-09）</h3>
+<table>
+<tr><th>指标</th><th>数值</th></tr>
+<tr><td>库内场次 / 活动</td><td><strong>426 / 430</strong></td></tr>
+<tr><td>艺人 / 场地</td><td><strong>305 / 148</strong></td></tr>
+<tr><td>垂类活动</td><td>22（地偶 12 / ACG 7 / 地偶+ACG 2 / 三者 1）</td></tr>
+<tr><td><strong>线上发布场次</strong></td><td><strong>18</strong></td></tr>
+<tr><td>城市分布</td><td>广州 9 / 东莞 6 / 深圳 2 / 珠海 1</td></tr>
+<tr><td>一次完整四源 8 城采集</td><td><strong>862 秒</strong>（589 条）</td></tr>
+<tr><td>待复核</td><td>52 条</td></tr>
+<tr><td>测试</td><td>Python <strong>468</strong> 项 + Node <strong>16</strong> 项</td></tr>
+</table>
+<h3>5.2 知识库</h3>
+<ul>
+<li><code>SEED_ARTISTS</code> <strong>18 条</strong>（每条带 <code>evidence</code> 来源 URL）</li>
+<li>其中 <strong>4 条</strong>已交叉验证官方账号（小红书）</li>
+<li><strong>257</strong> 个阵容名字仍未知（多为拼写差异/个人名；高频的才是真团体）</li>
+<li>加载规则：<strong>只加载有 <code>evidence</code> 的条目</strong>，<code>unknown</code> 占位行不参与判定</li>
+<li>⚠️ 实测教训：早期用 <code>kind='band'</code> 当占位，导致 282 个未核实艺人</li>
+</ul>
+<p>被当成「已知」→ 知识库 285 条，实际无用</p>
+<h3>5.3 情报账号矩阵（<code>app/normalize/info_accounts.py</code>）</h3>
+<table>
+<tr><th>类型</th><th>账号</th></tr>
+<tr><td>图鉴/聚合（小红书）</td><td><strong>广州地偶图鉴</strong>（14 条）、KingMaker、广州城市活动Pro</td></tr>
+<tr><td>场馆情报</td><td>千城忆梦（「广州地下偶像常去场馆统计」）</td></tr>
+<tr><td>日程工具</td><td>飞鸟与海（「地偶演出太难找，我做了一个演出日历」）、不取对象</td></tr>
+<tr><td>跨团体高频</td><td>小快子📷（8 次）、悠哉日常大王（13 次）</td></tr>
+<tr><td>图鉴作者（微博）</td><td><strong>Garry_Liu_</strong>（uid=5861861144）</td></tr>
+<tr><td>待核实（微博）</td><td>元气弹偶像工作室、神启Apotheosis_OFFICIAL、龙亦瑞工作室</td></tr>
+</table>
+<h3>5.4 已知限制（如实记录）</h3>
+<ol>
+<li><strong>小红书笔记正文无法读取</strong> → 88 条线索只能人工确认</li>
+</ol>
+<p>（<code>scripts/xhs_make_leads.py</code> 产出 <code>data/xhs_leads.md</code>）</p>
+<ol>
+<li><strong>小红书数据未入库</strong>：采集器能跑，但线索需人工确认后才进库</li>
+<li><strong>channel 表为空</strong>：账号已发现（能发现 UID），但未持久化到频道表</li>
+<li><strong>微博解析仍有噪音</strong>：抽奖/福利贴可能被当活动</li>
+<li><strong>免费场地排期渠道未找到</strong>（地王广场等）</li>
+<li><strong>「漫展」同时在 <code>ACG_HINTS</code> 与 <code>_EXHIBITION_RE</code> 里</strong> —— 规则有自相矛盾，</li>
+</ol>
+<p>导致萤火虫漫展的地偶舞台不带 ACG 标记</p>
+<ol>
+<li>静态站<strong>无采集/无订阅/无纠错</strong>（设计如此）</li>
+</ol>
+<hr>
+<h2>6. 操作手册</h2>
+<h3>6.1 启动</h3>
+<pre><code>启动.bat              :: 起服务 + 打开页面
+停止.bat              :: 停服务
+更新数据.bat           :: 只更新数据（不启服务），可放计划任务
+小红书登录.bat         :: 小红书扫码（登录过期时）
+小红书采集.bat         :: 采集小红书线索</code></pre>
+<h3>6.2 ⚠️ 采集后必须按顺序做后处理</h3>
+<p><strong>顺序很容易搞错</strong> —— 实测踩过：先 <code>reclassify</code>（按阵容）再 <code>backfill</code>（按标题） 会把阵容得到的结论清掉，事件就从日历里消失（<code>koyo生诞祭应援</code> 就是这样掉出去又恢复的）。</p>
+<pre><code>python -m app.cli refresh                # 采集 → artist-kb → reclassify → backfill → build-static
+python -m app.cli refresh --no-fetch     # 只做后处理 + 重建</code></pre>
+<table>
+<tr><th>步骤</th><th>为什么在这个位置</th></tr>
+<tr><td><code>artist-kb</code></td><td>必须最先 —— <code>reclassify</code> 要先把知识库同步进 artist 表</td></tr>
+<tr><td><code>reclassify</code></td><td>按<strong>阵容</strong>（最可靠），应在 <code>backfill</code> 之前</td></tr>
+<tr><td><code>backfill</code></td><td>只按标题；已改成与现有标记取<strong>并集</strong>（不再清掉上下文结论）</td></tr>
+<tr><td><code>build-static</code></td><td>必须最后 —— 否则导出旧标记</td></tr>
+</table>
+<h3>6.3 全部 CLI 命令</h3>
+<pre><code>python -m app.cli initdb            # 建表
+python -m app.cli migrate           # 结构迁移（给已有表补列）
+python -m app.cli fetch             # 跑采集
+python -m app.cli refresh           # 采集 + 后处理 + 重建（推荐）
+python -m app.cli backfill          # 按标题回填标记（并集语义）
+python -m app.cli reclassify        # 按阵容重分类
+python -m app.cli artist-kb         # 同步演员知识库
+python -m app.cli build-static      # 导出静态站
+python -m app.cli stats             # 看统计
+python -m app.cli serve             # 起 API + 前端
+python -m app.cli worker            # 起调度器（长驻）
+python -m app.cli ics-preview       # 打印 .ics 预览
+python -m app.cli bili-accounts     # B站账号发现（实验性）
+python -m app.cli xhs {status,login,collect}   # 小红书</code></pre>
+<h3>6.4 测试与发布</h3>
+<pre><code>python -m pytest tests -q     # Python 468 项
+npm test                      # Node 16 项
+python scripts/make_datasources.py   # 重新生成数据源清单
+git add -A &amp;&amp; git commit &amp;&amp; git push # 推送后 GitHub Pages 自动重建</code></pre>
+<p><strong>静态站产物结构</strong>（<code>docs/</code>，GitHub Pages 源 = <code>master:/docs</code>）：</p>
+<pre><code>docs/
+├── index.html          页面外壳（注入 window.__STATIC__ / __FEATURES__）
+├── .nojekyll           关闭 Jekyll 处理
+├── css/app.css
+├── js/*.js             11 个前端文件
+├── data/               数据快照
+│   ├── occurrences.json    场次明细（发布口径过滤后）
+│   ├── stats.json          统计
+│   ├── venues.json         场地
+│   ├── meta.json           生成时间与元信息
+│   └── calendar/YYYY-MM.json   月历点阵计数
+├── DATASOURCES.md      ← 数据源清单（构建不会删，见下）
+└── ../SPEC.md          本规格书（在仓库根，不在 docs/）</code></pre>
+<blockquote>⚠️ <code>build-static</code> 的 <code>prepare_out_dir()</code> <strong>只删</strong> <code>data/</code>、<code>css/</code>、<code>js/</code>、 <code>index.html</code>、<code>.nojekyll</code>（即「本程序管理的文件」），<strong>手写文档不受影响</strong>。 这样设计是为了避免 Windows 下 <code>rmtree</code> 输出目录时的 <code>PermissionError: [WinError 32]</code>（预览服务器占用目录时必现）。</blockquote>
+<hr>
+<h2>7. 目录结构</h2>
+<pre><code>gd-calendar/
+├── app/
+│   ├── api/             FastAPI 路由、服务层、图片代理
+│   ├── collectors/      各源采集器（showstart/douban/bilibili/weibo/xhs）
+│   ├── db/              模型、迁移
+│   ├── jobs/            更新任务、回填
+│   ├── normalize/       演员知识库、情报账号
+│   ├── parsers/         中文文案解析器（text_zh.py，核心资产）
+│   ├── web/             前端（无框架，原生 JS）
+│   ├── config.py        配置
+│   ├── static_build.py  静态站导出 + 发布口径
+│   └── cli.py           命令行入口
+├── docs/                静态站产物（GitHub Pages 源）
+├── scripts/             启动脚本、探测/诊断工具
+├── tests/               测试
+├── data/                数据库与缓存（不进版本库）
+└── promo/               推广素材</code></pre>
+<hr>
+<h2>8. 待办（按优先级）</h2>
+<ol>
+<li><strong>人工确认小红书 88 条线索</strong>（尤其「广州地偶图鉴」的 53 团图鉴、</li>
+</ol>
+<p>国庆 25 场速览）→ 一次可补几十个团体与场次</p>
+<ol>
+<li><strong>修「漫展」在 ACG 词表与展会判据里的自相矛盾</strong></li>
+<li>把发现的账号<strong>持久化到 channel 表</strong>（现在只发现不落库）</li>
+<li>继续找<strong>免费场地排期渠道</strong>（地王广场 / 陈家祠 / 海珠湖 / 中大）</li>
+<li>收紧微博解析的抽奖/福利贴噪音</li>
+<li>B站 UP 主账号发现的 mid 获取途径（当前未跑通）</li>
+</ol>
+</main>
+</body>
+</html>

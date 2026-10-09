@@ -484,5 +484,30 @@ async def build_static_site(
     # Pages 默认会用 Jekyll 处理站点，下划线开头的文件会被忽略 —— 关掉它
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
 
+    # ---- 7) 文档也导出成 HTML ----
+    # ⚠️ 为什么必须转 HTML：站点开着 `.nojekyll`，Pages **不处理** `docs/*.md`，
+    #    直接访问 `.md` 会 404（实测确认）。而数据源清单这类文档应该能从站上看到。
+    _export_docs(out_dir, stats)
+
     log.info("静态站点已生成：%s（%s）", out_dir, stats.summary())
     return stats
+
+
+def _export_docs(out_dir: Path, stats: BuildStats) -> None:
+    """把仓库根与 docs/ 下的 Markdown 文档渲染成 HTML 一起发布。"""
+    from app import md_render
+
+    repo_root = Path(__file__).resolve().parent.parent
+    jobs: list[tuple[Path, str]] = [
+        (repo_root / "SPEC.md", "规格书"),
+        (out_dir / "DATASOURCES.md", "数据源清单"),
+        (repo_root / "README.md", "使用说明"),
+    ]
+    for src, title in jobs:
+        dst = out_dir / f"{src.stem}.html"
+        try:
+            if md_render.render_file(src, dst, title=title):
+                stats.files.append(dst.name)
+        except Exception as exc:  # noqa: BLE001
+            # 文档渲染失败不该让整次构建失败 —— 站点主体比文档重要
+            log.warning("文档渲染失败 %s：%s", src.name, exc)

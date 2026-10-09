@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文档 · 广东地下演出日历</title>
+<style>
+  :root { --fg:#1a1a1a; --dim:#666; --line:#e5e5e5; --accent:#c8102e; --bg:#fff;
+          --code:rgba(128,128,128,.14); }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#e8e8e8; --dim:#9a9a9a; --line:#333; --bg:#161616; }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:32px 20px 80px; background:var(--bg); color:var(--fg);
+    font:15px/1.75 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  }
+  main { max-width:820px; margin:0 auto; }
+  h1 { font-size:23px; margin:0 0 6px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px;
+       border-bottom:1px solid var(--line); }
+  p.lead { color:var(--dim); margin:0 0 4px; }
+  ul { padding-left:20px; margin:0; }
+  li { margin:9px 0; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  code { background:var(--code); padding:1px 5px; border-radius:4px;
+         font:13px/1 ui-monospace,Consolas,monospace; }
+  .note { margin:16px 0 0; padding:11px 14px; border-left:3px solid var(--accent);
+          background:rgba(200,16,46,.06); color:var(--dim); font-size:13.5px; }
+  .desc { color:var(--dim); font-size:13.5px; }
+  .back { display:inline-block; margin-bottom:18px; font-size:13.5px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="./">← 返回日历</a>
+  <h1>文档</h1>
+  <p class="lead">广东地下演出日历 · 规格与数据源说明</p>
+
+  <div class="note">
+    本站是<b>只读数据快照</b>，部署在 GitHub Pages 上，不支持采集、订阅与纠错。
+    完整功能请在本地运行 <code>启动.bat</code>（见 README）。
+  </div>
+
+  <h2>规格与数据源</h2>
+  <ul>
+    <li><a href="SPEC.html">规格书</a>
+      <div class="desc">数据源清单 / 爬虫方案 / 数据结构 / 界面设计 / 现状与已知限制</div></li>
+    <li><a href="DATASOURCES.html">数据源清单</a>
+      <div class="desc">由 <code>scripts/make_datasources.py</code> 从源码与数据库自动生成</div></li>
+    <li><a href="README.html">使用说明</a>
+      <div class="desc">快速开始、设计取舍、实测记录</div></li>
+  </ul>
+
+  <h2>仓库原文（GitHub）</h2>
+  <ul>
+    <li><a href="https://github.com/oneSaber/gd-calendar/blob/master/SPEC.md">SPEC.md</a></li>
+    <li><a href="https://github.com/oneSaber/gd-calendar/blob/master/docs/DATASOURCES.md">DATASOURCES.md</a></li>
+    <li><a href="https://github.com/oneSaber/gd-calendar#readme">README.md</a></li>
+  </ul>
+
+  <h2>数据接口（静态 JSON）</h2>
+  <ul>
+    <li><a href="data/occurrences.json">data/occurrences.json</a>
+      <div class="desc">场次明细（已按发布口径过滤）</div></li>
+    <li><a href="data/stats.json">data/stats.json</a>
+      <div class="desc">统计</div></li>
+    <li><a href="data/venues.json">data/venues.json</a>
+      <div class="desc">场地</div></li>
+    <li><a href="data/meta.json">data/meta.json</a>
+      <div class="desc">生成时间与元信息</div></li>
+  </ul>
+
+  <h2>本地完整功能</h2>
+  <ul>
+    <li><a href="http://127.0.0.1:8000/">http://127.0.0.1:8000/</a>
+      <div class="desc">起服务后可用：采集、.ics 订阅、纠错投稿</div></li>
+    <li><a href="http://127.0.0.1:8000/docs">http://127.0.0.1:8000/docs</a>
+      <div class="desc">FastAPI 接口文档（需本地运行）</div></li>
+  </ul>
+</main>
+</body>
+</html>

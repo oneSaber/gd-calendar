@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>数据源清单 · 广东地下演出日历</title>
+<style>
+  :root { --fg:#1a1a1a; --dim:#666; --line:#e5e5e5; --accent:#c8102e;
+           --bg:#fff; --code:rgba(128,128,128,.14); }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#e8e8e8; --dim:#9a9a9a; --line:#333; --bg:#161616; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:32px 20px 80px; background:var(--bg); color:var(--fg);
+         font:15px/1.75 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif; }
+  main { max-width:900px; margin:0 auto; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  h1 { font-size:23px; margin:0 0 14px; }
+  h2 { font-size:18px; margin:34px 0 12px; padding-bottom:6px;
+        border-bottom:1px solid var(--line); }
+  h3 { font-size:15.5px; margin:24px 0 8px; }
+  code { background:var(--code); padding:1px 5px; border-radius:4px;
+          font:13px/1 ui-monospace,Consolas,monospace; }
+  pre { background:var(--code); padding:12px 14px; border-radius:8px;
+         overflow-x:auto; }
+  pre code { background:none; padding:0; }
+  table { border-collapse:collapse; width:100%; margin:12px 0; font-size:14px; }
+  th, td { border:1px solid var(--line); padding:7px 10px; text-align:left;
+            vertical-align:top; }
+  th { background:var(--code); font-weight:600; }
+  blockquote { margin:12px 0; padding:8px 14px; border-left:3px solid var(--accent);
+                background:rgba(200,16,46,.06); color:var(--dim); }
+  ul, ol { padding-left:22px; }
+  hr { border:none; border-top:1px solid var(--line); margin:28px 0; }
+  .back { display:inline-block; margin-bottom:18px; font-size:13.5px; }
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="./docs.html">← 文档索引</a>
+<h1>数据源清单（自动生成）</h1>
+<blockquote>⚠️ 本文件由 <code>scripts/make_datasources.py</code> 从<strong>源码</strong>生成，请勿手改。 重新生成：<code>python scripts/make_datasources.py</code></blockquote>
+<h2>一、已接入的源</h2>
+<table>
+<tr><th>源</th><th>场次</th><th>阵容覆盖</th></tr>
+<tr><td><code>showstart</code></td><td>287</td><td>247/287（86.1%）</td></tr>
+<tr><td><code>douban</code></td><td>101</td><td>3/101（3.0%）</td></tr>
+<tr><td><code>bilibili</code></td><td>31</td><td>2/31（6.5%）</td></tr>
+<tr><td><code>weibo</code></td><td>14</td><td>11/14（78.6%）</td></tr>
+<tr><td><code>huodong</code></td><td>0</td><td>0/0（—）</td></tr>
+<tr><td><code>manual</code></td><td>0</td><td>0/0（—）</td></tr>
+<tr><td><code>venue_site</code></td><td>0</td><td>0/0（—）</td></tr>
+</table>
+<p><strong>阵容覆盖率是最关键的指标</strong> —— 发布口径要求「演出名单必须能证明是演出」， 秀动 86% 的覆盖是整个垂类判定的命脉，豆瓣几乎不给阵容。</p>
+<h2>二、采集关键词</h2>
+<h3>微博（每个词 ≈33 秒，所以精挑）</h3>
+<ul>
+<li><code>广州 免费 公演</code></li>
+<li><code>广州 偶活速览</code></li>
+<li><code>深圳 偶活 速览</code></li>
+<li><code>广州地偶</code></li>
+<li><code>深圳地偶</code></li>
+<li><code>珠海 地偶</code></li>
+<li><code>东莞 地偶</code></li>
+<li><code>佛山 地偶</code></li>
+<li><code>广州 生诞</code></li>
+<li><code>地王广场 偶像</code></li>
+<li><code>广州 ACG 乐队</code></li>
+<li><code>广州 同人 演出</code></li>
+<li><code>广州 术力口</code></li>
+<li><code>深圳 ACG 演出</code></li>
+<li><code>东莞 萤火虫 偶像</code></li>
+<li><code>广州 漫展 偶像 舞台</code></li>
+</ul>
+<h3>小红书</h3>
+<ul>
+<li><code>广州地偶</code></li>
+<li><code>广州地偶图鉴</code></li>
+<li><code>地偶 演出 情报</code></li>
+<li><code>广州 偶像 公演</code></li>
+<li><code>地王广场 偶像</code></li>
+<li><code>ACG 乐队 演出</code></li>
+<li><code>地偶 生诞祭</code></li>
+</ul>
+<h2>三、情报账号（图鉴/聚合/场馆/工具）</h2>
+<table>
+<tr><th>平台</th><th>类型</th><th>账号</th><th>发现依据</th></tr>
+<tr><td>小红书</td><td>聚合/图鉴</td><td><strong>广州地偶图鉴</strong></td><td>搜「广州地偶」时 14 条命中，含「2026广州地偶图鉴更新第27弹」「广州国庆偶活速览🎤25场先收藏」——周更聚合，覆</td></tr>
+<tr><td>小红书</td><td>聚合/图鉴</td><td><strong>KingMaker</strong></td><td>「国庆&amp;中秋 华南地偶活动汇总帖」</td></tr>
+<tr><td>小红书</td><td>场馆情报</td><td><strong>千城忆梦</strong></td><td>「广州地下偶像常去场馆统计」——场馆维度情报</td></tr>
+<tr><td>小红书</td><td>聚合/图鉴</td><td><strong>广州城市活动Pro</strong></td><td>「广州漫展人集合！🎉8月—11月广州漫展时间表」</td></tr>
+<tr><td>小红书</td><td>日程工具</td><td><strong>飞鸟与海</strong></td><td>「地偶演出太难找，我做了一个演出日历」——同类项目，可参考口径</td></tr>
+<tr><td>小红书</td><td>日程工具</td><td><strong>不取对象</strong></td><td>「2026 ACG&amp;二游 音乐会/演唱会排期盘点」</td></tr>
+<tr><td>小红书</td><td>聚合/图鉴</td><td><strong>小快子📷（摄影版）</strong></td><td>反向搜索 12 个团体时出现 8 次——跨团体高频的现场记录者，可用于发现新团体</td></tr>
+<tr><td>小红书</td><td>聚合/图鉴</td><td><strong>悠哉日常大王</strong></td><td>反向搜索时出现 13 次（最高频），覆盖 DigitalDuel / LAMENTiS 等</td></tr>
+<tr><td>微博</td><td>聚合/图鉴</td><td><strong>Garry_Liu_</strong></td><td>「广州地偶图鉴」系列作者——搜「广州地偶图鉴」「偶活速览」两个词都命中它</td></tr>
+<tr><td>微博</td><td>聚合/图鉴</td><td><strong>CrossingX克珞星</strong></td><td>搜「偶活速览」命中</td></tr>
+<tr><td>微博</td><td>主办/工作室</td><td><strong>元气弹偶像工作室</strong></td><td>联网搜索「地王广场 地偶」时的结果之一，疑似主办方/工作室，<strong>待人工确认</strong>后再作为采集目标</td></tr>
+<tr><td>微博</td><td>聚合/图鉴</td><td><strong>神启Apotheosis_OFFICIAL</strong></td><td>搜「地王广场」命中（uid=9185021276）——疑似地偶团体官号，<strong>待核实</strong>是否团体</td></tr>
+<tr><td>微博</td><td>主办/工作室</td><td><strong>龙亦瑞工作室</strong></td><td>搜「地王广场」命中（uid=9150487106），疑似主办/工作室，<strong>待核实</strong></td></tr>
+</table>
+<h2>四、团体官方账号（反向搜索交叉验证）</h2>
+<table>
+<tr><th>团体</th><th>小红书账号</th></tr>
+<tr><td>恋时青空</td><td>恋时青空_AzuraToki_Official</td></tr>
+<tr><td>ReaLume</td><td>ReaLume_Official</td></tr>
+<tr><td>恋音契约</td><td>恋音契约</td></tr>
+<tr><td>山海誓约</td><td>山海誓约_OFFICIAL</td></tr>
+</table>
+<h2>五、已验证不可行的源</h2>
+<table>
+<tr><th>源</th><th>结论</th><th>实测依据</th></tr>
+<tr><td>小红书笔记正文</td><td>❌ 不可行</td><td>直接 <code>nav()</code> → 404；点 DOM 链接（含坐标点击）→ 坐标 <code>0,0</code> 仍 404；弹层 <code>role=dialog</code> 始终为 0</td></tr>
+<tr><td>微博账号主页</td><td>❌ 不可用</td><td><code>/api/container</code> → <strong>432</strong>；<code>/u/&lt;uid&gt;</code> 返 200 但是 JS 壳（无 <code>$render_data</code>/<code>mblog</code>）</td></tr>
+<tr><td>中国的 Fandom Wiki</td><td>❌ 网络不可达</td><td><code>chinaidols.fandom.com</code> HTTP 与浏览器均 <code>ERR_CONNECTION_TIMED_OUT</code></td></tr>
+<tr><td>微信公众号</td><td>❌ 已排除</td><td>维护者要求不做；微信侧另有验证码拦截</td></tr>
+<tr><td>抖音</td><td>❌ 登录墙</td><td>早期已放弃</td></tr>
+<tr><td>B站会员购翻页</td><td>⚠️ 无意义</td><td>广州 <code>total=17</code>、<code>pagesize=16</code> → 只有一页</td></tr>
+<tr><td>B站票务接口直调</td><td>❌ 被拒</td><td><code>listV2</code> 直调 <code>success=false</code>／<code>请求非法</code></td></tr>
+<tr><td>B站 UP 主搜索</td><td>⚠️ 未跑通</td><td>结果页不发可拦截 XHR；<code>BrowserFetcher</code> 无 <code>cmd</code> 读不了 DOM</td></tr>
+</table>
+<h2>六、B站的硬限制</h2>
+<p>城市选择器<strong>只有 10 个城市</strong>（全国/北京/上海/杭州/广州/深圳/武汉/天津/ 成都/南京 + 自动定位的珠海）。广东仅<strong>广州 / 深圳 / 珠海</strong>可点 —— 佛山、东莞的按钮在页面上找不到；中山、惠州、汕头根本没有。</p>
+</main>
+</body>
+</html>
