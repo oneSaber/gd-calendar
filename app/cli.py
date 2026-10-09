@@ -62,6 +62,10 @@ def _build_parser() -> argparse.ArgumentParser:
     xh.add_argument("--keywords", default="", help="逗号分隔；留空用内置词表")
     xh.add_argument("--out", default="", help="采集结果输出 JSON 路径")
     xh.add_argument("--show", action="store_true", help="用可见窗口（扫码时必须）")
+    xh.add_argument("--with-body", action="store_true",
+                    help="顺带抓笔记正文（演出时间/地点/阵容在正文里）")
+    xh.add_argument("--body-limit", type=int, default=30,
+                    help="抓正文的条数上限（每条约 10 秒）")
 
     rc = sub.add_parser(
         "reclassify", help="按阵容重算活动分类（比标题可靠，与标题判定取并集）"
@@ -273,7 +277,11 @@ async def cmd_xhs(args) -> int:
 
     # collect
     kws = [k.strip() for k in args.keywords.split(",") if k.strip()] or None
-    res = xhs.collect(kws)
+    res = xhs.collect(
+        kws,
+        with_body=getattr(args, "with_body", False),
+        body_limit=getattr(args, "body_limit", 30),
+    )
     print(f"  登录态: {'已登录' if res.logged_in else '⚠ 未登录（请先扫码）'}")
     print(f"  完成关键词: {len(res.keywords_done)} 个")
     print(f"  笔记: {len(res.notes)} 条")

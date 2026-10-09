@@ -59,6 +59,9 @@ SEARCH_KEYWORDS: list[str] = [
     "地偶 生诞祭",
 ]
 
+# ⚠️ `xsec_token` 是打开笔记正文的**必需参数**（缺了就 404）。
+_XSEC_TOKEN_RE = re.compile(r"[?&]xsec_token=([^&\s]+)")
+
 # 小红书域名特征（判断当前页面是否还在小红书）
 XHS_HOST_RE = re.compile(r"(^|\.)xiaohongshu\.com$")
 
@@ -71,7 +74,7 @@ _UI_NOISE = {
 
 @dataclass
 class XhsNote:
-    """一条笔记的最小可用字段（只留对做日历有用的）。"""
+    """一条笔记的可用字段。"""
 
     note_id: str = ""
     title: str = ""
@@ -79,11 +82,17 @@ class XhsNote:
     text: str = ""
     url: str = ""
     keyword: str = ""
+    # ⚠️ `xsec_token` 是打开正文的**必需参数**（缺了就 404）。
+    # 它随搜索结果下发，所以采集时必须一起存下来。
+    xsec_token: str = ""
+    # 正文（点开笔记后取到），可能为空（未抓或抓失败）
+    body: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "note_id": self.note_id, "title": self.title, "author": self.author,
             "text": self.text, "url": self.url, "keyword": self.keyword,
+            "xsec_token": self.xsec_token, "body": self.body,
         }
 
 
@@ -154,25 +163,66 @@ def launch_profile_browser(*, port: int = 9222, headless: bool = True) -> bool:
 # DOM 抽取
 # --------------------------------------------------------------------------- #
 
-# 读搜索结果里的笔记卡片。属性选择器刻意写得宽 —— XHS 的 class 名是
-# 构建产物（带 hash），不能依赖具体类名，只能靠结构 + `href` 特征。
+# 读搜索结果里的笔记卡片。
+#
+# ⚠️ 必须**连 `xsec_token` 一起采集**（实测的关键点）。
+# XHS 现在的笔记链接形如：
+#     /search_result/<id>?xsec_token=AB-…&xsec_source=pc_search
+# 只取 `<id>` 拼 `/explore/<id>` 会 **404**；带上 token 就能直接打开。
+#
+# 之前的错误结论：我判定「笔记正文不可自动读取（防抓取）」。
+# 真相是**缺 token**，不是防抓取 —— 见 scripts/diag_xhs_why.py 的三组对照实验。
 _EXTRACT_NOTES_JS = r"""
 (function(){
-  var out = [];
-  var seen = {};
-  // 笔记链接统一形如 /explore/<note_id> 或 /search_result/<note_id>
-  var anchors = [].slice.call(document.querySelectorAll('a[href*="/explore/"],a[href*="/search_result/"]'));
-  anchors.forEach(function(a){
-    var m = /(?:explore|search_result)\/([0-9a-fA-F]{16,32})/.exec(a.getAttribute('href') || '');
+  // ⚠️ 同一条笔记在页面里有**两个**链接：
+  //     /explore/<id>                         （无 token，打开会 404）
+  //     /search_result/<id>?xsec_token=…      （有 token，能打开）
+  // 所以按 id 去重时**必须优先保留带 token 的那个**。
+  // 踩过的坑：按「先出现者胜」去重，结果 20 条笔记里 0 条带 token。
+  var byId = {};
+  var order = [];
+  [].slice.call(document.querySelectorAll(
+    'a[href*="/explore/"],a[href*="/search_result/"]'
+  )).forEach(function(a){
+    var href = a.getAttribute('href') || '';
+    var m = /(?:explore|search_result)\/([0-9a-fA-F]{16,32})/.exec(href);
     if(!m) return;
     var id = m[1];
-    if(seen[id]) return;
-    seen[id] = 1;
+    var hasTok = href.indexOf('xsec_token=') >= 0;
+    if(!(id in byId)){
+      byId[id] = {note_id: id, href: href, text: '', hasTok: hasTok};
+      order.push(id);
+    } else if(hasTok && !byId[id].hasTok){
+      byId[id].href = href;
+      byId[id].hasTok = true;
+    }
     var card = a.closest('section,div');
     var text = (card ? card.innerText : a.innerText) || '';
-    out.push({ note_id: id, href: a.getAttribute('href') || '', text: text.slice(0, 400) });
+    if(text && text.length > byId[id].text.length){
+      byId[id].text = text.slice(0, 400);
+    }
   });
-  return JSON.stringify(out);
+  return JSON.stringify(order.map(function(id){
+    var n = byId[id];
+    return {note_id: n.note_id, href: n.href, text: n.text};
+  }));
+})()
+"""
+
+# 笔记详情页的正文容器（实测命中 `#noteContainer` / `[role=dialog]`）
+_EXTRACT_DETAIL_JS = r"""
+(function(){
+  var box = document.querySelector('#noteContainer')
+         || document.querySelector('[role=dialog]')
+         || document.querySelector('[class*=note-detail]')
+         || document.querySelector('[class*=note-content]');
+  var t = box ? box.innerText : (document.body.innerText || '');
+  return JSON.stringify({
+    url: location.href,
+    title: document.title,
+    len: t.length,
+    text: t.slice(0, 4000)
+  });
 })()
 """
 
@@ -335,17 +385,59 @@ def collect_search(
     out: list[XhsNote] = []
     for it in items:
         title, author = parse_card_text(it.get("text") or "")
+        href = str(it.get("href") or "")
+        # ⚠️ token 必须从 href 里取出来存下 —— 打开正文时要用它，
+        #    而且它只在**当次搜索结果**里下发（换关键词/会话就变）。
+        tok = _XSEC_TOKEN_RE.search(href)
         out.append(
             XhsNote(
                 note_id=str(it.get("note_id") or ""),
                 title=title,
                 author=author,
                 text=(it.get("text") or "")[:400],
-                url=f"https://www.xiaohongshu.com{it.get('href') or ''}",
+                url=f"https://www.xiaohongshu.com{href}",
                 keyword=keyword,
+                xsec_token=tok.group(1) if tok else "",
             )
         )
     return out, True
+
+
+def note_url(note: XhsNote) -> str:
+    """打开笔记正文用的 URL。
+
+    ⚠️ 实测（scripts/diag_xhs_why.py 的 A/B 对照）：
+      * 不带 token 的 `/explore/<id>` → **404**
+      * **带 token** 直接 `nav()` → 正文可读（不需要模拟点击）
+
+    之前的错误结论：我判定「笔记正文不可自动读取（防抓取）」。
+    真相是**缺 `xsec_token`**，不是防抓取。
+    """
+    if note.xsec_token:
+        return (
+            f"https://www.xiaohongshu.com/explore/{note.note_id}"
+            f"?xsec_token={note.xsec_token}&xsec_source=pc_search"
+        )
+    return f"https://www.xiaohongshu.com/explore/{note.note_id}"
+
+
+def fetch_note_body(br: XhsBrowser, note: XhsNote, *, wait: float = 9.0) -> str:
+    """读取一条笔记的正文（失败返回空串，**不猜**）。"""
+    try:
+        br.nav(note_url(note), wait=wait)
+    except Exception:  # noqa: BLE001
+        return ""
+    time.sleep(1.5)
+    try:
+        raw = br.ev(_EXTRACT_DETAIL_JS)
+        d = json.loads(raw) if isinstance(raw, str) else {}
+    except Exception:  # noqa: BLE001
+        return ""
+    text = str(d.get("text") or "")
+    # 打到 404 或落到未登录态说明 token 失效/被拒 → 不当正文用
+    if "/404" in str(d.get("url") or "") or "登录后查看" in text:
+        return ""
+    return text
 
 
 def collect(
@@ -353,8 +445,16 @@ def collect(
     *,
     wait: float = 8.0,
     limit_per_kw: int = 20,
+    with_body: bool = False,
+    body_limit: int = 30,
+    body_wait: float = 9.0,
 ) -> XhsResult:
-    """按关键词采集（需要已登录的持久 profile）。"""
+    """按关键词采集（需要已登录的持久 profile）。
+
+    `with_body=True` 时**顺带抓正文** —— 演出时间/地点/阵容都在正文里，
+    只有标题拿不到可用情报。正文抓取比搜索慢（每条 ≈10 秒），
+    所以用 `body_limit` 限制条数。
+    """
     res = XhsResult()
     kws = keywords or SEARCH_KEYWORDS
     br = XhsBrowser()
@@ -378,12 +478,31 @@ def collect(
                     seen.add(n.note_id)
                     res.notes.append(n)
             log.info("小红书「%s」：%d 条笔记", kw, len(notes))
+
+        # 抓正文（优先抓「像排期/汇总」的，它们信息密度最高）
+        if with_body:
+            todo = sorted(
+                (n for n in res.notes if not n.body),
+                key=lambda n: 0 if any(
+                    k in (n.title or "")
+                    for k in ("速览", "汇总", "图鉴", "盘点", "排期", "日历", "时间表")
+                ) else 1,
+            )[:body_limit]
+            log.info("抓正文：%d 条（每条约 %.0f 秒）", len(todo), body_wait)
+            for i, n in enumerate(todo, 1):
+                body = fetch_note_body(br, n, wait=body_wait)
+                if body:
+                    n.body = body
+                    log.info("  [%d/%d] %s（正文 %d 字）", i, len(todo), n.title[:28], len(body))
+                else:
+                    log.info("  [%d/%d] %s（正文未取到）", i, len(todo), n.title[:28])
     finally:
         try:
             br.close()
         except Exception:  # noqa: BLE001
             pass
-    log.info("小红书合计 %d 条笔记（去重后）", len(res.notes))
+    got = sum(1 for n in res.notes if n.body)
+    log.info("小红书合计 %d 条笔记（去重后），其中 %d 条有正文", len(res.notes), got)
     return res
 
 
