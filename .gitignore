@@ -48,8 +48,7 @@ data/xhs_test.json
 # 无目录前缀的写法也留着：git 的忽略规则对**已追踪过的文件**不生效，
 # 而这两种写法在不同调用场景下命中的路径不同（实测 `xhs_leads.md`
 # 不带前缀时 `data/xhs_leads.md` 没被忽略）。
-xhs_leads.md
-xhs_artist_accounts.json
+data/xhs_leads.md
 # 浏览器 profile / cookie 导出（实际落在仓库外的 %LOCALAPPDATA%，这里兜底）
 xhs-profile/
 xhs-cookies.json
