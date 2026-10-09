@@ -45,16 +45,43 @@ SEARCH_XHR_MATCH = "/api/container"
 # containerid 的前缀：100103type=1&q=<关键词>（type=1 是综合搜索）
 SEARCH_CONTAINER_PREFIX = "100103type=1&q="
 
-# 发现用搜索词：地偶为主，乐队/场地兜底（与 docs §8 的实测可用词一致）
+# 发现用搜索词。
+#
+# ⚠️ 每个词 ≈33 秒（渲染移动端搜索页 + 拦截 XHR），所以**词表要精挑**：
+#    实测对标（scripts/probe_weibo_keywords.py）后定下下面这些。
+#
+# 覆盖三类来源，都是售票平台拿不到的：
+#   1. **聚合号**：「本周广州偶活速览」这类周更贴，一次覆盖整周免费/小型场次
+#      （2026-10 实测：仅「广州 免费 公演」一词就出 11 条，含该聚合贴）
+#   2. **地偶团体/企划**：团体官微发的演出预告（带阵容，是分类的命脉）
+#   3. **ACG / 同人 演出**：ACG 乐队、同人 Only、术力口 Only 等
+#      （实测：「广州 ACG 乐队」出「音爆ANISON 超次元ACG室内音乐节」「BO5乐队」）
+#
+# ⚠️ 场地词（地王广场）也放进来了：地王广场是**免费场地**（商场中庭），
+#    演出不上售票平台，只能靠社交媒体。实测「地王广场」有产出，但偏快闪/主题店，
+#    所以与「偶像」「公演」组合用，直接搜场地名会带进一堆商场营销内容。
 SEARCH_KEYWORDS: list[str] = [
+    # ---- 聚合速览（性价比最高，优先）----
+    "广州 免费 公演",
+    "广州 偶活速览",
+    "深圳 偶活 速览",
+    # ---- 地偶（各城）----
     "广州地偶",
     "深圳地偶",
-    "广州 公演",
+    "珠海 地偶",
+    "东莞 地偶",
+    "佛山 地偶",
     "广州 生诞",
-    "广州 ONEMAN",
-    "广州 Only",
-    "广州 livehouse",
-    "广州 乐队 专场",
+    # ---- 免费场地（商场/公共空间）----
+    "地王广场 偶像",
+    # ---- ACG / 同人 演出 ----
+    "广州 ACG 乐队",
+    "广州 同人 演出",
+    "广州 术力口",
+    "深圳 ACG 演出",
+    # ---- 漫展里的地偶舞台（萤火虫等）----
+    "东莞 萤火虫 偶像",
+    "广州 漫展 偶像 舞台",
 ]
 
 # 微博搜索页在 m 站（移动端）才有干净的卡片 JSON
@@ -285,6 +312,26 @@ def _post_to_occurrence(
     )
     if fields.get("date_precision") in (None, "tbd"):
         return None  # 没有可识别日期 → 不是演出预告（避免把日常博文灌进日历）
+
+    # ⚠️ 实测坑：微博文案里的日期常常**没有年份**（「10月18日」「9日」），
+    #    解析器补当前年时，若那天已过就会推到**下一年**。于是库内出现了
+    #    「2027-06-07 深圳天气剧透# 9日局地偶有零星小雨」这种荒谬场次。
+    #
+    #    判据：演出不会提前太久预告。用**博文发出时间**做基准，超过 120 天的
+    #    一律丢弃 —— 真演出提前 4 个月以上公告的情况极少，
+    #    而「把已过的日子推到明年」正好会落在这个区间之外。
+    start_at = fields.get("start_at")
+    if start_at is not None and ref_now is not None:
+        horizon = ref_now + dt.timedelta(days=120)
+        # 统一时区后比较（SQLite 读回来可能是 naive）
+        s_cmp = start_at if start_at.tzinfo else start_at.replace(tzinfo=CST)
+        n_cmp = ref_now if ref_now.tzinfo else ref_now.replace(tzinfo=CST)
+        if s_cmp > horizon:
+            log.debug(
+                "微博丢弃远期日期 %s（博文 %s）：%s",
+                s_cmp.date(), n_cmp.date(), (fields.get("title_display") or "")[:30],
+            )
+            return None
     if _REL_TIME_RE.search(fields.get("title_display") or ""):
         # 标题不该是「10分钟前」这类相对时间
         fields["title_display"] = title

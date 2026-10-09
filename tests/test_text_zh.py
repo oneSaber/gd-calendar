@@ -251,6 +251,48 @@ class TestVenue:
     def test_undecided(self):
         assert t.clean_venue("场地待定") is None
 
+    @pytest.mark.parametrize("raw", [
+        "...全文",
+        "活动舞台 ...全文",
+        "活动舞台(5.1号馆 ...全文",   # 截断后右括号被切掉，正则要容忍
+        "活 ...全文",
+        "…全文",
+    ])
+    def test_weibo_truncation_marker_is_not_venue(self, raw):
+        """⚠️ 实测坑：微博「展开全文」的截断标记被当成场地插进库里。
+
+        成因：搜索结果里长文正文被截断成「…正文… ...全文」，
+        解析器把截断点当成了字段值。实测污染了 4 个场地记录。
+        """
+        assert t.clean_venue(raw) is None, f"{raw!r} 不该被当成场地"
+
+    @pytest.mark.parametrize("raw", [
+        "演出", "活动", "舞台", "会场",
+        "活动舞台(5.1号馆)", "活动舞台(5.1号馆", "演出舞台",
+    ])
+    def test_generic_category_word_is_not_venue(self, raw):
+        """只有品类泛词、没有专名的「场地」指向不了任何地点，是解析噪音。"""
+        assert t.clean_venue(raw) is None, f"{raw!r} 不该被当成场地"
+
+    @pytest.mark.parametrize("raw", ["活", "凝固"])
+    def test_short_fragment_is_not_venue(self, raw):
+        """短碎片是正文被切剩下的，不是场地（实测 `凝固` 来自微博正文）。"""
+        assert t.clean_venue(raw) is None, f"{raw!r} 不该被当成场地"
+
+    @pytest.mark.parametrize("raw,expect_contains", [
+        ("SDlivehouse", "SDlivehouse"),
+        ("珠海乐坊", "珠海乐坊"),
+        ("地王广场", "地王广场"),          # 免费场地也要正常保留
+        ("广州地王广场", "地王广场"),
+        ("活动中心A馆", "活动中心A馆"),     # 含专名 A馆 → 不是泛词
+        ("星海音乐厅", "星海音乐厅"),
+        ("大剧院", "大剧院"),               # 含「剧院」特征词，保留
+    ])
+    def test_real_venues_survive(self, raw, expect_contains):
+        """回归：修噪音过滤不能把真场地一起杀掉。"""
+        got = t.clean_venue(raw)
+        assert got and expect_contains in got, f"{raw!r} 被误杀：{got!r}"
+
     def test_taicang_distinction(self):
         """实测：太古仓 4 号仓（MAO）与 5 号仓（太空间）是两个场地，不可混为「太古仓」。"""
         a = t.clean_venue("MAO Livehouse广州（太古仓店）革新路124号太古仓4号仓")

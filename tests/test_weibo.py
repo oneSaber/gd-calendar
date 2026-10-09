@@ -442,11 +442,36 @@ class TestSearchUrl:
         url = w.search_url("广州 livehouse")
         assert " " not in url
 
-    def test_keywords_match_documented_list(self):
-        assert w.SEARCH_KEYWORDS == [
-            "广州地偶", "深圳地偶", "广州 公演", "广州 生诞", "广州 ONEMAN",
-            "广州 Only", "广州 livehouse", "广州 乐队 专场",
+    def test_keywords_still_cover_documented_cases(self):
+        """关键词表**不冻结具体列表**，而是断言它仍覆盖设计要求的几类来源。
+
+        为什么改成这样：原先断言写死了 8 个词，扩展词表就会挂测试。
+        但词表本来就该随实测（`scripts/probe_weibo_keywords.py`）演进 ——
+        该守的是**覆盖范围**，不是具体字符串。
+
+        设计要求（维护者提出）：
+          1. 微博上的地偶信息（含各城，不只广州/深圳）
+          2. ACG 乐队 / 同人 演出
+          3. **免费场地**（地王广场这类商场中庭，不上售票平台）
+        """
+        kws = w.SEARCH_KEYWORDS
+
+        # 1) 地偶：至少覆盖广州 + 两个其他城市
+        assert any("广州" in k and "地偶" in k for k in kws), "缺广州地偶"
+        other_cities = [
+            c for c in ("深圳", "珠海", "东莞", "佛山", "中山", "惠州", "汕头")
+            if any(c in k and "地偶" in k for k in kws)
         ]
+        assert len(other_cities) >= 2, f"地偶覆盖城市太少：{other_cities}"
+
+        # 2) ACG / 同人 演出
+        assert any("ACG" in k for k in kws), "缺 ACG 关键词"
+        assert any("同人" in k or "术力口" in k for k in kws), "缺同人/术力口关键词"
+
+        # 3) 免费场地 + 聚合速览（实测性价比最高的两类）
+        assert any("地王广场" in k for k in kws), "缺免费场地（地王广场）关键词"
+        assert any("偶活" in k or "免费" in k for k in kws), "缺聚合速览/免费公演关键词"
+
         assert w.SEARCH_XHR_MATCH == "/api/container"
 
 

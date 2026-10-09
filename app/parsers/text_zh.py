@@ -798,6 +798,35 @@ def parse_prices(text: str) -> tuple[float | None, float | None, bool, list[Tick
 
 _UNDECIDED_WORDS = ("待定", "待公布", "秘密", "未定", "TBD", "tbd", "？？", "??", "待确认")
 
+# ⚠️ 微博「展开全文」的截断标记，**不是**场地名。
+# 实测被当成场地插进库里的垃圾：`...全文`、`活动舞台 ...全文`、`活 ...全文`、
+# `活动舞台(5.1号馆 ...全文`。
+# 变体很多（带点/不带点；在括号后/空格后），所以判据放宽到
+# 「结尾出现『全文』，且前面是空白、标点或省略号」。
+_WEIBO_TRUNC_RE = re.compile(r"[\s.…·、,，)）】\]]+全文\s*$")
+
+# ⚠️ 场地名长度下限：**2 个字符**。
+# 实测出现过 `活`、`凝固` 这种被切剩的碎片。2 字以下一律判为解析噪音。
+_VENUE_MIN_LEN = 2
+
+# 场地特征词：短名（< 4 字）必须含其中之一，否则判为碎片噪音。
+# 实测 `凝固` 这种既是短名又无场地特征 —— 是正文片段而不是场地。
+_SHORT_NAME_HINT_RE = re.compile(
+    r"厅|馆|场|城|园|院|楼|店|吧|仓|台|中心|空间|广场|剧场|剧院|酒馆|咖啡|"
+    r"live|house|club|bar|space|arena|hall",
+    re.I,
+)
+
+# ⚠️ 只有品类泛词、没有任何专名的「场地」是解析噪音，不是场地。
+# 实测：`演出`、`活动`、`舞台`、`活动舞台(5.1号馆)`、`活动舞台(5.1号馆`（截断后括号不闭合）。
+# 判据：整串由「泛词 + 可选场馆类型词 + 可选括号编号」构成时判为噪音。
+# 括号允许不闭合 —— 微博截断会切掉右括号，不能因此放过。
+_VENUE_GENERIC_RE = re.compile(
+    r"^(?:活动|演出|现场|舞台|会场|展台|摊位|活动舞台|演出舞台)"
+    r"(?:区|厅|馆|台|场地)?"
+    r"(?:[（(][^）)]{0,12}[）)]?)?$"
+)
+
 # 信息载体的 emoji：本身就带语义，抽取阶段要保留
 _INFO_EMOJI = ("📍", "🗓", "🎫", "⏰", "🕖", "🕗", "🕘", "🎪", "🏟")
 
@@ -967,6 +996,11 @@ def clean_venue(raw: str | None) -> str | None:
     if not raw:
         return None
     s = clean_text(raw).strip()
+    # ⚠️ 先剥掉微博「展开全文」截断标记 —— 它是**文案截断点**而不是内容。
+    # 实测不处理会插进 `...全文`、`活动舞台 ...全文` 这种垃圾场地。
+    s = _WEIBO_TRUNC_RE.sub("", s).strip()
+    if not s:
+        return None
     s = s.lstrip("".join(_INFO_EMOJI) + " @:：")
     s = _VENUE_STRIP_PREFIX.sub("", s)
     # 在下一个字段名处截断（「广州天河入场：48.8」→「广州天河」）
@@ -1002,6 +1036,17 @@ def clean_venue(raw: str | None) -> str | None:
         break
     s = s.strip(" ,，。;；-—·")
     if not s or is_date_like(s):
+        return None
+    # ⚠️ 只有品类泛词的「场地」是解析噪音（实测：`演出`、`活动舞台(5.1号馆)`）。
+    # 这类名字指向不了任何具体地点，插进库只会污染场地表。
+    if _VENUE_GENERIC_RE.match(s):
+        return None
+    # ⚠️ 过短的碎片也是噪音（实测 `活`、`凝固` —— 被截断标记切剩下的）
+    if len(s) < _VENUE_MIN_LEN:
+        return None
+    # ⚠️ 短名（< 4 字）必须含场地特征词，否则是正文碎片。
+    # 实测 `凝固`（2 字、无特征）被判成场地 —— 它其实来自微博正文。
+    if len(s) < 4 and not _SHORT_NAME_HINT_RE.search(s):
         return None
     # 剥离尾部地址
     name, _addr = split_venue_address(s)
