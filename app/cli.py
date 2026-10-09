@@ -16,6 +16,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import sys
+import time
+from pathlib import Path
 
 from app.utils import setup_logging
 
@@ -41,6 +43,16 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     ba.add_argument("--limit", type=int, default=0, help="只处理前 N 个（0=全部）")
     ba.add_argument("--dry-run", action="store_true", help="只搜索不写库")
+
+    # 小红书：需要维护者自己的登录态（扫码一次可复用），只读公开笔记
+    xh = sub.add_parser("xhs", help="小红书采集（需扫码登录；只读公开笔记）")
+    xh.add_argument(
+        "action", choices=["status", "login", "collect"],
+        help="status=看登录态 / login=扫码登录 / collect=按关键词采集",
+    )
+    xh.add_argument("--keywords", default="", help="逗号分隔；留空用内置词表")
+    xh.add_argument("--out", default="", help="采集结果输出 JSON 路径")
+    xh.add_argument("--show", action="store_true", help="用可见窗口（扫码时必须）")
 
     rc = sub.add_parser(
         "reclassify", help="按阵容重算活动分类（比标题可靠，与标题判定取并集）"
@@ -200,6 +212,72 @@ async def cmd_bili_accounts(args) -> int:
     return 0
 
 
+async def cmd_xhs(args) -> int:
+    """小红书采集。需要维护者自己的登录态（扫码一次可复用）。
+
+    合规：只读公开笔记，不注入 Cookie、不伪造签名、不改指纹 ——
+    与 `scripts/xhs_publish.py`（发布助手）走同一条路。
+    """
+    from app.collectors import xhs
+
+    action = args.action
+
+    if action == "status":
+        print("  小红书 profile:", xhs.PROFILE)
+        print("  profile 存在:", xhs.PROFILE.exists())
+        try:
+            br = xhs.XhsBrowser()
+            logged, names = br.logged_in()
+            print(f"  登录态: {'已登录 ✓' if logged else '未登录'}")
+            print(f"  cookie: {', '.join(names[:8])}")
+            print(f"  当前页面: {br.url()}")
+            br.close()
+        except Exception as exc:  # noqa: BLE001
+            print(f"  无法连接浏览器：{exc}")
+            print("  先起可见浏览器：python scripts/xhs_publish.py launch")
+        return 0
+
+    if action == "login":
+        print("  ⚠️ 需要**可见窗口**扫码。若浏览器未运行，先执行：")
+        print("     python scripts/xhs_publish.py launch")
+        print("  然后跑：python -m app.cli xhs login")
+        try:
+            br = xhs.XhsBrowser()
+            br.nav("https://www.xiaohongshu.com/login", wait=4.0)
+            print("  已打开登录页，请在浏览器里扫码。")
+            print("  等待登录（最多 180 秒）…")
+            for i in range(60):
+                time.sleep(3)
+                ok, _ = br.logged_in()
+                if ok:
+                    print(f"  ✓ 登录成功（等待 {(i + 1) * 3} 秒）")
+                    br.close()
+                    return 0
+                if i % 5 == 4:
+                    print(f"    仍在等待…（{(i + 1) * 3}s）")
+            print("  ✗ 超时未检测到登录")
+            br.close()
+            return 1
+        except Exception as exc:  # noqa: BLE001
+            print(f"  失败：{exc}")
+            return 1
+
+    # collect
+    kws = [k.strip() for k in args.keywords.split(",") if k.strip()] or None
+    res = xhs.collect(kws)
+    print(f"  登录态: {'已登录' if res.logged_in else '⚠ 未登录（请先扫码）'}")
+    print(f"  完成关键词: {len(res.keywords_done)} 个")
+    print(f"  笔记: {len(res.notes)} 条")
+    for n in res.notes[:15]:
+        print(f"    [{n.author[:14] or '?'}] {n.title[:44]}")
+    if res.errors:
+        print(f"  错误 {len(res.errors)} 个：{res.errors[:3]}")
+    out = Path(args.out) if args.out else Path("data") / "xhs_notes.json"
+    xhs.save_notes(res.notes, out)
+    print(f"  已保存: {out}")
+    return 0 if res.logged_in else 2
+
+
 async def cmd_build_static(args) -> int:
     """生成 GitHub Pages 用的只读静态站点。"""
     from pathlib import Path
@@ -320,6 +398,7 @@ def main(argv: list[str] | None = None) -> int:
         "backfill": lambda: cmd_backfill(args),
         "artist-kb": lambda: cmd_artist_kb(args),
         "bili-accounts": lambda: cmd_bili_accounts(args),
+        "xhs": lambda: cmd_xhs(args),
         "reclassify": lambda: cmd_reclassify(args),
         "build-static": lambda: cmd_build_static(args),
         "fetch": lambda: cmd_fetch(args),

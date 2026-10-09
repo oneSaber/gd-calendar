@@ -33,9 +33,15 @@ venv/
 .DS_Store
 Thumbs.db
 
-# �ύ��Ϣ�ݸ�
+# 提交信息草稿（脚本生成，不进版本库）
 .git-commit-msg.txt
 
-# GitHub Actions workflow����ǰ gh token ȱ workflow scope���޷����͡�
-# ��Ҫʱ�ֶ�����ҳ�ϴ������� gh auth refresh -s workflow ���Ƴ����С�
+# GitHub Actions workflow：当前 gh token 缺 workflow scope，无法推送。
+# 需要时手动在网页上传，或 gh auth refresh -s workflow 后移除本行。
 .github/workflows/
+
+# 小红书采集结果（每次采集都变，且与维护者账号相关）
+data/xhs_notes.json
+# 浏览器 profile / cookie 导出（实际落在仓库外的 %LOCALAPPDATA%，这里兜底）
+xhs-profile/
+xhs-cookies.json
