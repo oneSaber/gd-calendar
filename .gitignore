@@ -42,6 +42,14 @@ Thumbs.db
 
 # 小红书采集结果（每次采集都变，且与维护者账号相关）
 data/xhs_notes.json
+data/xhs_leads.md
+data/xhs_artist_accounts.json
+data/xhs_test.json
 # 浏览器 profile / cookie 导出（实际落在仓库外的 %LOCALAPPDATA%，这里兜底）
 xhs-profile/
 xhs-cookies.json
+# 小红书抓取的图片素材（体积大 ~1.7MB；数据已转录进 gz_idol_roster.py，
+# 图片可重新抓取，所以不进版本库）
+# ⚠️ 用通配 `data/xhs_note*` 覆盖所有变体，避免每加一个新目录就漏一次
+data/xhs_note*/
+data/xhs_images/
