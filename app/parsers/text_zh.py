@@ -807,7 +807,30 @@ _PERF_IN_MALL_RE = re.compile(
     re.I,
 )
 
-_UNDECIDED_WORDS = ("待定", "待公布", "秘密", "未定", "TBD", "tbd", "？？", "??", "待确认")
+# 二次元漫展 / 同人展的判据。
+#
+# ## 为什么单独一个标记而不是塞进 is_acg
+#
+# `is_acg` 在本项目里的语义是「**ACG 音乐演出**」相关（anisong / 乐队 /
+# 同人 Live）。而游戏同人展（明日方舟 ONLY、第五人格 ONLY…）是
+# **周边与本子市集**，不是音乐演出 —— 混进 `is_acg` 会污染那个语义。
+#
+# 但维护者要求**包含漫展**（口径 B），所以用一个独立标记表达
+# 「这是二次元展会」，让前端可以分别筛选、也让发布口径能单独处理。
+#
+# 实测：库里 22 场未来漫展里只有 4 场属垂类 —— 其余 18 场是游戏/少年漫
+# 同人展，此前既不带 is_acg 也不进日历。
+_DOUJIN_EXPO_RE = re.compile(
+    r"漫展|同人\s*only|同人\s*ONLY|only\s*同人|ONLY\s*同人|"
+    r"同人展|同人祭|only展|ONLY展|嘉年华|comic\s*up|Comic\s*Up|"
+    r"动漫展|动漫游戏|次元展|漫游展",
+    re.I,
+)
+
+# 场地/日期「待定」类占位词（`is_undecided` 用）。
+_UNDECIDED_WORDS = (
+    "待定", "待公布", "秘密", "未定", "TBD", "tbd", "？？", "??", "待确认",
+)
 
 # ⚠️ 微博「展开全文」的截断标记，**不是**场地名。
 # 实测被当成场地插进库里的垃圾：`...全文`、`活动舞台 ...全文`、`活 ...全文`、
@@ -1416,7 +1439,9 @@ class ClassifyResult:
     保留这个向后兼容是为了不破坏已有的 40+ 处调用点。
     """
 
-    __slots__ = ("kind", "is_idol", "is_girl_band", "is_acg", "tags")
+    __slots__ = (
+        "kind", "is_idol", "is_girl_band", "is_acg", "is_doujin_expo", "tags",
+    )
 
     def __init__(
         self,
@@ -1425,11 +1450,14 @@ class ClassifyResult:
         is_girl_band: bool,
         is_acg: bool,
         tags: list[str],
+        # ⚠️ 带默认值：本类有 40+ 处调用点，新字段不能强制传参
+        is_doujin_expo: bool = False,
     ) -> None:
         self.kind = kind
         self.is_idol = is_idol
         self.is_girl_band = is_girl_band
         self.is_acg = is_acg
+        self.is_doujin_expo = is_doujin_expo
         self.tags = tags
 
     def __iter__(self):
@@ -1444,6 +1472,7 @@ class ClassifyResult:
             "is_idol": self.is_idol,
             "is_girl_band": self.is_girl_band,
             "is_acg": self.is_acg,
+            "is_doujin_expo": self.is_doujin_expo,
             "tags": self.tags,
         }
 
@@ -1476,7 +1505,7 @@ def _lineup_kb():
 def classify(
     title: str, extra: str = "", lineup: Any = None
 ) -> ClassifyResult:
-    """分类：返回 ClassifyResult（可解包成 (kind, is_idol, tags)）。
+    """分类：返回 ClassifyResult（可解包成 (kind, is_idol, tags, is_doujin_expo)）。
 
     判定顺序（实测调优）：
       1. 命中排除词且无强地偶信号 → other + 标签「非演出」
@@ -1497,6 +1526,18 @@ def classify(
     # ⚠️ 不能用 `or title` 兜底：调用方常传整段文案作 title，那样 title_low 会覆盖标题
     title_low = (title or "").lower()
     tags: list[str] = []
+
+    # 二次元漫展 / 同人展（口径 B：维护者要求纳入垂类）。
+    #
+    # ⚠️ 与 `is_acg` **分开**：后者的语义是「ACG **音乐演出**」
+    #    （anisong / 乐队 / 同人 Live）。游戏同人展（明日方舟 ONLY 等）
+    #    是周边与本子市集，混进 is_acg 会污染那个语义。
+    #
+    # 实测：库里 22 场未来漫展里只有 4 场属垂类 —— 其余 18 场是
+    # 游戏/少年漫同人展，此前既不带 is_acg 也不进日历。
+    is_doujin_expo = bool(_DOUJIN_EXPO_RE.search(hay))
+    if is_doujin_expo:
+        tags.append("漫展")
 
     idol_score = sum(1 for h in IDOL_HINTS if h.lower() in low)
     band_score = sum(1 for h in BAND_HINTS if h.lower() in low)
@@ -1585,42 +1626,42 @@ def classify(
     if is_idol:
         if any(k in low for k in _IDOL_BIRTHDAY):
             tags.append("生诞")
-            return ClassifyResult("idol_birthday", True, is_girl_band, is_acg, tags)
+            return ClassifyResult("idol_birthday", True, is_girl_band, is_acg, tags, is_doujin_expo)
         if any(k in low for k in _ONEMAN):
             tags.append("Oneman")
-            return ClassifyResult("oneman", True, is_girl_band, is_acg, tags)
+            return ClassifyResult("oneman", True, is_girl_band, is_acg, tags, is_doujin_expo)
         if any(k in low for k in _TAIBAN) or "only" in low:
             tags.append("Only" if "only" in low else "联合")
-            return ClassifyResult("idol_taiban", True, is_girl_band, is_acg, tags)
+            return ClassifyResult("idol_taiban", True, is_girl_band, is_acg, tags, is_doujin_expo)
         if any(k in low for k in _IDOL_REGULAR):
             tags.append("定期公演")
-            return ClassifyResult("idol_regular", True, is_girl_band, is_acg, tags)
+            return ClassifyResult("idol_regular", True, is_girl_band, is_acg, tags, is_doujin_expo)
         # 同时出现多个地偶信号（如「联合公演」「定期公演」）也归为定期公演
         if idol_score >= 2:
             tags.append("公演")
-            return ClassifyResult("idol_regular", True, is_girl_band, is_acg, tags)
-        return ClassifyResult("doujin_live", True, is_girl_band, is_acg, tags)
+            return ClassifyResult("idol_regular", True, is_girl_band, is_acg, tags, is_doujin_expo)
+        return ClassifyResult("doujin_live", True, is_girl_band, is_acg, tags, is_doujin_expo)
 
     if any(k in low for k in _FESTIVAL):
         tags.append("音乐节")
-        return ClassifyResult("festival", False, is_girl_band, is_acg, tags)
+        return ClassifyResult("festival", False, is_girl_band, is_acg, tags, is_doujin_expo)
     if any(k in low for k in _TOUR):
         tags.append("巡演")
-        return ClassifyResult("tour_stop", False, is_girl_band, is_acg, tags)
+        return ClassifyResult("tour_stop", False, is_girl_band, is_acg, tags, is_doujin_expo)
     if "专场" in probe and band_score > 0:
         tags.append("专场")
-        return ClassifyResult("oneman", False, is_girl_band, is_acg, tags)
+        return ClassifyResult("oneman", False, is_girl_band, is_acg, tags, is_doujin_expo)
     if any(k in low for k in _ONEMAN):
         tags.append("专场")
-        return ClassifyResult("oneman", False, is_girl_band, is_acg, tags)
+        return ClassifyResult("oneman", False, is_girl_band, is_acg, tags, is_doujin_expo)
     if any(k in low for k in _TAIBAN):
         tags.append("拼盘")
-        return ClassifyResult("taiban", False, is_girl_band, is_acg, tags)
+        return ClassifyResult("taiban", False, is_girl_band, is_acg, tags, is_doujin_expo)
     if band_score > 0:
-        return ClassifyResult("rock_live", False, is_girl_band, is_acg, tags)
+        return ClassifyResult("rock_live", False, is_girl_band, is_acg, tags, is_doujin_expo)
     if negative:
         tags.append("非演出")
-    return ClassifyResult("other", False, is_girl_band, is_acg, tags)
+    return ClassifyResult("other", False, is_girl_band, is_acg, tags, is_doujin_expo)
 
 
 _TITLE_STOP_RE = re.compile(

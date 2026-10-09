@@ -64,7 +64,7 @@ def main() -> None:
         ("SPEC 艺人 351", "351" in spec, actual["艺人"], 351),
         ("SPEC 场地 153", "153" in spec, actual["场地"], 153),
         ("SPEC 垂类 24", "24" in spec, actual["垂类活动"], 24),
-        ("SPEC 发布 19", "**19**" in spec, published, 19),
+        ("SPEC 发布 39", "**39**" in spec, published, 39),
         ("SPEC 复核 52", "52" in spec, actual["待复核"], 52),
         ("README 提到 SPEC.md", "SPEC.md" in readme, 1, 1),
         ("README 提到 DATASOURCES", "DATASOURCES" in readme, 1, 1),

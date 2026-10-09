@@ -24,7 +24,8 @@ import pytest
 from app.static_build import PublishPolicy
 
 
-def item(title: str, *, lineup=None, is_idol=False, is_acg=False, is_girl_band=False):
+def item(title: str, *, lineup=None, is_idol=False, is_acg=False, is_girl_band=False,
+         is_doujin_expo=False):
     """造一个查询结果项（模拟 OccurrenceOut）。
 
     lineup 传字符串列表即可，内部转成带 `.name` 的对象 —— 与真实
@@ -36,7 +37,8 @@ def item(title: str, *, lineup=None, is_idol=False, is_acg=False, is_girl_band=F
     ]
     return SimpleNamespace(
         event=SimpleNamespace(
-            title=title, is_idol=is_idol, is_girl_band=is_girl_band, is_acg=is_acg
+            title=title, is_idol=is_idol, is_girl_band=is_girl_band,
+            is_acg=is_acg, is_doujin_expo=is_doujin_expo,
         ),
         lineup=names,
     )
@@ -189,3 +191,41 @@ class TestNonPerformerNames:
         assert policy.accepts(
             item("koyo生诞祭应援", lineup=["Koyo_Digitalduel-1018生诞祭版"], is_idol=True)
         ) is False
+
+
+class TestDoujinExpoPolicy:
+    """口径 B：二次元漫展 / 同人展纳入垂类（维护者明确要求）。
+
+    ⚠️ 漫展是**展会**（周边与本子市集），本来就没有「演出阵容」——
+    用阵容卡它是范畴错误。所以发布口径为它加了一条独立放行条件。
+    """
+
+    def test_expo_without_lineup_is_published(self, policy):
+        assert policy.accepts(item(
+            "全职猎人同人only", lineup=[], is_doujin_expo=True
+        )) is True
+
+    def test_expo_without_flag_is_still_rejected(self, policy):
+        """没有 is_doujin_expo 标记的展会仍按原规则（无阵容 → 拒）。"""
+        assert policy.accepts(item(
+            "某个不明活动", lineup=[]
+        )) is False
+
+    def test_expo_flag_alone_is_vertical(self, policy):
+        """`is_doujin_expo` **本身就是垂类标记**（在 VERTICAL_FLAGS 里）。
+
+        所以「只有漫展标记、三个音乐标记都为假」的场次属于垂类，
+        并由口径 B 放行 —— 这正是游戏同人展的形态。
+        """
+        assert policy.accepts(item(
+            "某活动", lineup=[], is_doujin_expo=True
+        )) is True
+
+    def test_nothing_set_is_rejected(self, policy):
+        """四个标记全为假的普通内容仍被拒（垂类闸门有效）。"""
+        assert policy.accepts(item("某活动", lineup=[])) is False
+        assert policy.rejects(item("某活动", lineup=[])) == "不属垂类"
+
+    def test_reject_reason_mentions_all_conditions(self, policy):
+        r = policy.rejects(item("某垂类但无佐证", lineup=[], is_acg=True))
+        assert r and "漫展" in r

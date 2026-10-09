@@ -76,8 +76,12 @@ async def backfill_flags(session: AsyncSession, *, dry_run: bool = False) -> Bac
             bool(ev.is_idol) or cls.is_idol,
             bool(ev.is_girl_band) or cls.is_girl_band,
             bool(ev.is_acg) or cls.is_acg,
+            bool(ev.is_doujin_expo) or cls.is_doujin_expo,
         )
-        old_flags = (bool(ev.is_idol), bool(ev.is_girl_band), bool(ev.is_acg))
+        old_flags = (
+            bool(ev.is_idol), bool(ev.is_girl_band),
+            bool(ev.is_acg), bool(ev.is_doujin_expo),
+        )
         if new_flags != old_flags:
             stats.changed += 1
             if len(stats.samples) < 8:
@@ -85,7 +89,10 @@ async def backfill_flags(session: AsyncSession, *, dry_run: bool = False) -> Bac
                     f"{title[:34]}  {old_flags} → {new_flags}"
                 )
             if not dry_run:
-                ev.is_idol, ev.is_girl_band, ev.is_acg = new_flags
+                (
+                    ev.is_idol, ev.is_girl_band,
+                    ev.is_acg, ev.is_doujin_expo,
+                ) = new_flags
 
     if not dry_run:
         await session.flush()

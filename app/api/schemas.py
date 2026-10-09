@@ -82,6 +82,8 @@ class EventOut(BaseModel):
     # 与 is_idol 正交的独立标记，可叠加（一个 ACG 女子乐队两个都真）
     is_girl_band: bool = False
     is_acg: bool = False
+    # 二次元漫展 / 同人展（与 is_acg 的音乐语义分开）
+    is_doujin_expo: bool = False
     poster_thumb: str | None = None
     # 海报：原站地址经本站代理后的可直链 URL（None 表示该场次没有海报）
     poster_url: str | None = None

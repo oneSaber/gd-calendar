@@ -31,7 +31,7 @@ from app.utils import get_logger, now_cst
 
 log = get_logger(__name__)
 
-FLAG_FIELDS = ("is_idol", "is_girl_band", "is_acg")
+FLAG_FIELDS = ("is_idol", "is_girl_band", "is_acg", "is_doujin_expo")
 
 
 async def load_knowledge_base(session: AsyncSession) -> ArtistKnowledgeBase:

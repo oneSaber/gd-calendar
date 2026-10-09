@@ -94,7 +94,14 @@ export const FLAG_OPTIONS = [
     key: 'acg',
     label: 'ACG',
     cls: 'acg',
-    title: '动画 / 漫画 / 游戏 / 二次元 / 同人 / 宅向',
+    title: 'ACG 音乐演出：anisong / ACG 乐队 / 同人 Live',
+  },
+  {
+    key: 'doujin_expo',
+    label: '漫展',
+    cls: 'expo',
+    title: '二次元漫展 / 同人展（周边与本子市集；通常没有演出阵容，'
+      + '所以与「ACG 音乐演出」分开标注）',
   },
 ];
 
@@ -104,6 +111,7 @@ export function eventFlags(event) {
   const out = [];
   if (event.is_girl_band) out.push('女子乐队');
   if (event.is_acg) out.push('ACG');
+  if (event.is_doujin_expo) out.push('漫展');
   return out;
 }
 

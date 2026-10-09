@@ -52,7 +52,10 @@ WEB_DIR = Path(__file__).parent / "web"
 #   2. 数据量小一个数量级，静态站更轻，也避免无关信息被转载。
 # 判定是**或**关系（任一标记命中即保留），与界面上多选标记的「与」语义不同：
 # 「与」是用户主动收窄，这里是站点范围。
-VERTICAL_FLAGS = ("is_idol", "is_girl_band", "is_acg")
+# 垂类标记（口径 B：二次元漫展也算垂类）。
+# ⚠️ `is_doujin_expo` 与 `is_acg` 分开：后者是「ACG 音乐演出」，
+#    前者是「二次元展会」。维护者要求包含漫展，所以两者都进垂类。
+VERTICAL_FLAGS = ("is_idol", "is_girl_band", "is_acg", "is_doujin_expo")
 
 
 # --------------------------------------------------------------------------- #
@@ -185,19 +188,20 @@ class PublishPolicy:
 
         规则（维护者定，**或**关系）：
 
-          大前提：这条内容与 ACG 有关（`is_idol` / `is_girl_band` / `is_acg`
-                  任一为真，即已进入垂类范围）
+          大前提：这条内容属垂类（`is_idol` / `is_girl_band` / `is_acg` /
+                  `is_doujin_expo` 任一为真）
           小前提（满足任一即放行）：
             a) 演出阵容里有**地偶 / ACG 乐队 / 女子乐队**（知识库可识别）
             b) 活动主题与**日本 ACG 音乐或偶像**有关（品牌白名单）
             c) 命中已核实的具体厂牌/企划名（事实，不需佐证）
+            d) **二次元漫展 / 同人展**（口径 B）
         """
         ev = getattr(item, "event", None)
         if ev is None:
             return "无 event"
-        # 大前提：与 ACG 有关
+        # 大前提：属垂类
         if not any(bool(getattr(ev, f, False)) for f in VERTICAL_FLAGS):
-            return "与 ACG 无关（非垂类）"
+            return "不属垂类"
         if not self.require_lineup:
             return None
 
@@ -211,7 +215,14 @@ class PublishPolicy:
         # a) 演出阵容里有垂类团体（先查知识库，能识别「名字里拼了后缀」的情况）
         if _lineup_performers(item, self.kb):
             return None
-        return "与 ACG 有关但无垂类演出阵容、也非日本 ACG 音乐/偶像主题"
+        # d) 二次元漫展 / 同人展（口径 B）
+        #
+        # ⚠️ 为什么这里**不需要阵容**：漫展是**展会**（周边/本子市集），
+        #    它本来就没有「演出阵容」这个概念 —— 用阵容卡它是范畴错误。
+        #    这 23 场在加 is_doujin_expo 之前被全部排除，加标记后按口径 B 放行。
+        if getattr(ev, "is_doujin_expo", False):
+            return None
+        return "属垂类但无演出阵容、非日本 ACG 音乐/偶像主题、也不是漫展"
 
     # 语义别名：accepts 读起来更顺
     def accepts(self, item: Any) -> bool:

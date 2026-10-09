@@ -125,7 +125,13 @@ export function occurrenceParams(filters = {}, extra = {}) {
     city: filters.city,
     kind: filters.kind,
     is_idol: filters.is_idol,
-    flag: flags.length ? flags.map((f) => (f === 'girl_band' ? '女子乐队' : 'acg')) : undefined,
+    flag: flags.length
+      ? flags.map((f) => (
+          f === 'girl_band' ? '女子乐队'
+            : f === 'doujin_expo' ? '漫展'
+              : 'acg'
+        ))
+      : undefined,
     venue_id: filters.venue_id,
     venue_type: filters.venue_type,
     artist_id: filters.artist_id,

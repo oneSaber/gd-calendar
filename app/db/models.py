@@ -164,6 +164,9 @@ class Event(Base, TimestampMixin):
     # 与 is_idol 正交的独立标记：可叠加（一个 ACG 女子乐队两个都为真）
     is_girl_band: Mapped[bool] = mapped_column(Boolean, default=False)
     is_acg: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 二次元漫展 / 同人展（口径 B）。与 is_acg **分开**：is_acg 的语义是
+    # 「ACG **音乐演出**」，游戏同人展是周边市集，混在一起会污染那个语义。
+    is_doujin_expo: Mapped[bool] = mapped_column(Boolean, default=False)
     description: Mapped[str | None] = mapped_column(Text)
     poster_url: Mapped[str | None] = mapped_column(Text)
     poster_thumb: Mapped[str | None] = mapped_column(Text)
@@ -184,6 +187,7 @@ class Event(Base, TimestampMixin):
         Index("event_is_idol_idx", "is_idol"),
         Index("event_is_girl_band_idx", "is_girl_band"),
         Index("event_is_acg_idx", "is_acg"),
+    Index("event_is_doujin_expo_idx", "is_doujin_expo"),
     )
 
 
