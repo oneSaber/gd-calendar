@@ -127,6 +127,7 @@ export function occurrenceParams(filters = {}, extra = {}) {
     is_idol: filters.is_idol,
     flag: flags.length ? flags.map((f) => (f === 'girl_band' ? '女子乐队' : 'acg')) : undefined,
     venue_id: filters.venue_id,
+    venue_type: filters.venue_type,
     artist_id: filters.artist_id,
     // 艺人/团体名搜索：搜的是**演出阵容**，与 `q`（只搜标题）不同。
     // 实测「恋音契约」标题匹配 1 场、阵容匹配 2 场。
@@ -318,6 +319,7 @@ export function buildIcsUrl(filters = {}) {
     city: filters.city,
     is_idol: filters.is_idol,
     venue_id: filters.venue_id,
+    venue_type: filters.venue_type,
     artist_id: filters.artist_id,
   })}`;
 }

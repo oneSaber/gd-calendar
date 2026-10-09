@@ -72,6 +72,7 @@ export function readState(search = window.location.search) {
     is_idol: isIdol,
     flags,
     venue_id: venueId ? String(venueId) : '',
+    venue_type: String(p.get('venue_type') || ''),
     status: String(p.get('status') || ''),
     price_max: priceMax ? String(priceMax) : '',
     q: String(p.get('q') || ''),
@@ -95,6 +96,7 @@ export function toQuery(state) {
   if (state.is_idol) p.set('is_idol', state.is_idol);
   if (state.flags && state.flags.length) p.set('flags', state.flags.join(','));
   if (state.venue_id) p.set('venue_id', state.venue_id);
+  if (state.venue_type) p.set('venue_type', state.venue_type);
   if (state.status) p.set('status', state.status);
   if (state.price_max) p.set('price_max', state.price_max);
   if (state.q) p.set('q', state.q);

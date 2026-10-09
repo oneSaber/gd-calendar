@@ -126,6 +126,11 @@ async def list_occurrences(
     artist_q: str | None = Query(
         None, description="按艺人/团体名搜索（含阵容里的原始写法）"
     ),
+    venue_type: str | None = Query(
+        None,
+        description="场地类型：livehouse / mall / park / convention / theater …"
+                    "；传 free 表示只看通常免费的场地（商场/公园/高校）",
+    ),
     price_max: float | None = None,
     status: str | None = None,
     q: str | None = None,
@@ -146,6 +151,7 @@ async def list_occurrences(
         is_idol=is_idol, is_girl_band=is_girl_band, is_acg=is_acg,
         flags_all=flag,
         venue_id=venue_id, artist_id=artist_id, artist_q=artist_q,
+        venue_type=venue_type,
         price_max=price_max, status=status, q=q,
         page=page, page_size=page_size, include_finished=include_finished,
         exclude_other=exclude_other,

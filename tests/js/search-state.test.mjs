@@ -86,3 +86,21 @@ test('往返：toQuery -> readState 稳定（artist 不丢）', () => {
   assert.equal(s2.artist, s1.artist);
   assert.deepEqual(s2.flags, s1.flags);
 });
+
+test('readState / toQuery 支持 venue_type', () => {
+  const s = readState('?from=2026-10-01&to=2026-10-31&venue_type=free');
+  assert.equal(s.venue_type, 'free');
+  assert.ok(toQuery(s).includes('venue_type=free'));
+});
+
+test('venue_type 缺省为空串（不是 undefined）', () => {
+  const s = readState('?from=2026-10-01&to=2026-10-31');
+  assert.equal(s.venue_type, '');
+});
+
+test('withRange 保留 venue_type 与 artist', () => {
+  const s = readState('?from=2026-10-01&to=2026-10-31&venue_type=free&artist=恋音');
+  const next = withRange(s, '2026-11-01', '2026-11-30');
+  assert.equal(next.venue_type, 'free');
+  assert.equal(next.artist, '恋音');
+});

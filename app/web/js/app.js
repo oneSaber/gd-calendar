@@ -20,7 +20,7 @@ import {
   rangeLabel,
   formatDateTime,
 } from './util.js';
-import { CITIES, FLAG_OPTIONS, KINDS, STATUS_OPTIONS, sourceLabel } from './labels.js';
+import { CITIES, FLAG_OPTIONS, KINDS, STATUS_OPTIONS, VENUE_TYPES, sourceLabel } from './labels.js';
 import * as api from './api.js';
 import * as store from './state.js';
 import * as view from './render.js';
@@ -153,6 +153,7 @@ function cacheDom() {
   dom.typeChips = id('type-chips');
   dom.flagChips = id('flag-chips');
   dom.kindSel = id('kind-sel');
+  dom.venueTypeSel = id('venue-type-sel');
   dom.venueSel = id('venue-sel');
   dom.statusSel = id('status-sel');
   dom.priceChip = id('price-chip');
@@ -197,6 +198,13 @@ function buildControls() {
   }
   dom.kindSel.innerHTML = KINDS.map((k) => `<option value="${escapeHtml(k.value)}">${escapeHtml(k.label)}</option>`).join('');
   dom.statusSel.innerHTML = STATUS_OPTIONS.map((s) => `<option value="${escapeHtml(s.value)}">${escapeHtml(s.label)}</option>`).join('');
+  // 场地类型：含「★ 免费场地」—— 商场中庭 / 公园 / 高校这类
+  // **不上售票平台**的场地，只能靠小红书、微博发现（本项目重点之一）
+  if (dom.venueTypeSel) {
+    dom.venueTypeSel.innerHTML = VENUE_TYPES
+      .map((v) => `<option value="${escapeHtml(v.value)}">${escapeHtml(v.label)}</option>`)
+      .join('');
+  }
 }
 
 /* --------------------------------------------------------------- 事件绑定 */
@@ -213,6 +221,9 @@ function bindEvents() {
   dom.kindSel.addEventListener('change', () => update({ kind: dom.kindSel.value }));
   dom.statusSel.addEventListener('change', () => update({ status: dom.statusSel.value }));
   dom.venueSel.addEventListener('change', () => update({ venue_id: dom.venueSel.value }));
+  if (dom.venueTypeSel) {
+    dom.venueTypeSel.addEventListener('change', () => update({ venue_type: dom.venueTypeSel.value }));
+  }
   dom.qInput.addEventListener('input', debounce(onSearchInput, 350));
 
   // ---- 日期选择（目标要求「支持日期选择」）----
@@ -444,6 +455,7 @@ function syncControls() {
     b.classList.toggle('on', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
+  if (dom.venueTypeSel) dom.venueTypeSel.value = S.venue_type || '';
   dom.kindSel.value = S.kind;
   dom.statusSel.value = S.status;
   dom.priceChip.classList.toggle('on', Boolean(S.price_max));
@@ -467,6 +479,7 @@ function baseFilters() {
     is_idol: S.is_idol,
     flags: S.flags || [],
     venue_id: S.venue_id,
+    venue_type: S.venue_type,
     status: S.status,
     price_max: S.price_max,
     q: S.q,
@@ -480,7 +493,7 @@ function listFilters() {
 }
 
 function filterKey() {
-  return [S.city, S.kind, S.is_idol, (S.flags || []).join('+'), S.venue_id, S.status, S.price_max, S.q, S.artist, S.demo ? 'demo' : ''].join('|');
+  return [S.city, S.kind, S.is_idol, (S.flags || []).join('+'), S.venue_id, S.venue_type, S.status, S.price_max, S.q, S.artist, S.demo ? 'demo' : ''].join('|');
 }
 
 async function getCounts(month, city) {

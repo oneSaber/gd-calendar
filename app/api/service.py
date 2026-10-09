@@ -32,6 +32,7 @@ from app.db.models import (
     OccurrenceSource,
     Source,
     TicketTier,
+    Venue,
 )
 from app.utils import CST, now_cst
 
@@ -52,6 +53,10 @@ class OccurrenceQuery:
     # 按**艺人名字**搜索（比 artist_id 更适合前端搜索框：
     # 用户输入的是名字，且要匹配阵容里的原始写法）
     artist_q: str | None = None
+    # 场地类型（livehouse / mall / park / convention / theater …）
+    venue_type: str | None = None
+    # 只看**通常免费入场**的场地（商场中庭 / 公园 / 高校）
+    free_venue: bool | None = None
     price_max: float | None = None
     status: str | None = None
     q: str | None = None
@@ -215,6 +220,34 @@ async def query_occurrences(
             )
         )
         stmt = stmt.where(Occurrence.id.in_(by_name))
+
+    if q.venue_type:
+        # 场地类型筛选：走 venue 关联（`venue_type` 在 venue 表上）
+        from app.normalize.venue_type import FREE_TYPES
+
+        if q.venue_type == "free":
+            # 「免费场地」是一个**组合筛选**：mall / park / campus 三类
+            # 通常不售票。放在这里而不是前端，是为了让 ICS 订阅、
+            # CSV 导出、静态站都拿到一致语义。
+            stmt = stmt.where(
+                Occurrence.venue_id.in_(
+                    select(Venue.id).where(Venue.venue_type.in_(sorted(FREE_TYPES)))
+                )
+            )
+        else:
+            stmt = stmt.where(
+                Occurrence.venue_id.in_(
+                    select(Venue.id).where(Venue.venue_type == q.venue_type)
+                )
+            )
+    elif q.free_venue:
+        from app.normalize.venue_type import FREE_TYPES
+
+        stmt = stmt.where(
+            Occurrence.venue_id.in_(
+                select(Venue.id).where(Venue.venue_type.in_(sorted(FREE_TYPES)))
+            )
+        )
 
     total = (
         await session.execute(select(func.count()).select_from(stmt.subquery()))
