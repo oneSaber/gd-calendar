@@ -72,9 +72,13 @@ export function readState(search = window.location.search) {
     is_idol: isIdol,
     flags,
     venue_id: venueId ? String(venueId) : '',
+    venue_type: String(p.get('venue_type') || ''),
     status: String(p.get('status') || ''),
     price_max: priceMax ? String(priceMax) : '',
     q: String(p.get('q') || ''),
+    // 艺人/团体名搜索。与 `q` 分开：`q` 只搜**标题**，
+    // `artist` 搜**演出阵容**（能捞到标题里没有的团，实测有效）。
+    artist: String(p.get('artist') || ''),
     view: p.get('view') === 'calendar' ? 'calendar' : 'list',
     month,
     d,
@@ -92,9 +96,11 @@ export function toQuery(state) {
   if (state.is_idol) p.set('is_idol', state.is_idol);
   if (state.flags && state.flags.length) p.set('flags', state.flags.join(','));
   if (state.venue_id) p.set('venue_id', state.venue_id);
+  if (state.venue_type) p.set('venue_type', state.venue_type);
   if (state.status) p.set('status', state.status);
   if (state.price_max) p.set('price_max', state.price_max);
   if (state.q) p.set('q', state.q);
+  if (state.artist) p.set('artist', state.artist);
   if (state.view && state.view !== 'list') p.set('view', state.view);
   if (state.month) p.set('month', state.month);
   if (state.d) p.set('d', state.d);
@@ -148,6 +154,28 @@ export function withDay(state, iso) {
 export function withMonth(state, month) {
   const next = { ...state, month };
   if (next.d && monthKey(next.d) !== month) next.d = '';
+  return next;
+}
+
+/**
+ * 直接设置日期范围（日期选择控件用）。
+ *
+ * 与 `withPreset` 的区别：预设是「算出来的范围」，这里是**用户手选**的，
+ * 所以 `preset` 归零为 `custom`（否则 UI 会高亮一个与实际范围不符的预设）。
+ * 任意一端为空时，用另一端补全 —— 避免出现 `from > to` 的空区间。
+ */
+export function withRange(state, from, to) {
+  let f = normDate(from) || state.from;
+  let t = normDate(to) || state.to;
+  if (f && t && t < f) {
+    // 用户把结束日拉到起始日之前：以**刚改的那端**为准（不静默交换，
+    // 否则用户会看到自己没输入过的值）
+    if (normDate(to)) f = t;
+    else t = f;
+  }
+  const next = { ...state, from: f, to: t, preset: 'custom' };
+  // 选中日若移出范围就清掉，避免列表与月历不一致
+  if (next.d && (next.d < f || next.d > t)) next.d = '';
   return next;
 }
 

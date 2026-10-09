@@ -107,6 +107,67 @@ button, input, select, textarea { font-family: var(--fs); font-size: inherit; }
 .chipgroup { display: flex; gap: 6px; flex-wrap: wrap; }
 .fdiv { width: 1px; height: 20px; background: var(--line); }
 
+/* ---- 日期范围选择 ---- */
+.dates { display: flex; align-items: center; gap: 6px; }
+.date-field {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+  padding: 3px 8px; font-size: 12px; color: var(--dim);
+}
+.date-field:focus-within { border-color: rgba(76, 141, 255, .6); }
+.date-field span { white-space: nowrap; }
+.date-field input[type="date"] {
+  background: none; border: 0; outline: none; color: var(--fg);
+  font: inherit; font-size: 12px; padding: 2px 0; min-width: 106px;
+  color-scheme: dark;
+}
+.date-field input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: .55; cursor: pointer; filter: invert(1);
+}
+.date-field input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: .9; }
+html[data-theme="light"] .date-field input[type="date"] { color-scheme: light; }
+html[data-theme="light"] .date-field input[type="date"]::-webkit-calendar-picker-indicator { filter: none; }
+
+/* ---- 艺人搜索（带自动补全） ---- */
+.artist-search {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+  padding: 3px 9px;
+}
+.artist-search:focus-within { border-color: rgba(255, 95, 162, .55); }
+.artist-search .search-ico { display: inline-flex; color: var(--dim); }
+.artist-search input {
+  background: none; border: 0; outline: none; color: var(--fg);
+  font: inherit; font-size: 12px; width: 126px; padding: 3px 0;
+}
+.artist-search input::placeholder { color: var(--dim); }
+#artist-list {
+  position: absolute; top: calc(100% + 5px); left: 0; z-index: 40;
+  min-width: 232px; max-height: 292px; overflow-y: auto;
+  margin: 0; padding: 4px; list-style: none;
+  background: #1C1C21; border: 1px solid var(--line2); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+}
+#artist-list li {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 8px; border-radius: 7px; cursor: pointer; font-size: 12.5px;
+}
+#artist-list li:hover,
+#artist-list li[aria-selected="true"] { background: #26262E; }
+#artist-list .ap-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#artist-list .ap-name mark { background: none; color: #FF9EC4; font-weight: 600; }
+#artist-list .ap-meta { color: var(--dim); font-size: 11px; white-space: nowrap; }
+#artist-list .ap-empty { color: var(--dim); cursor: default; justify-content: center; }
+#artist-list .ap-empty:hover { background: none; }
+html[data-theme="light"] #artist-list { background: #fff; }
+
+@media (max-width: 720px) {
+  .dates, .artist-search { flex: 1 1 100%; }
+  .artist-search input { width: 100%; }
+  #artist-list { min-width: 100%; }
+}
+
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--card); border: 1px solid var(--line); border-radius: 999px;

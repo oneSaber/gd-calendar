@@ -66,11 +66,34 @@
       <pre class="up-logs" id="update-logs" hidden></pre>
     </div>
     <div class="filters">
+      <div class="dates" role="group" aria-label="日期范围">
+        <label class="date-field">
+          <span>从</span>
+          <input id="date-from" type="date" aria-label="起始日期">
+        </label>
+        <label class="date-field">
+          <span>到</span>
+          <input id="date-to" type="date" aria-label="结束日期">
+        </label>
+        <button type="button" class="linkish" id="date-clear" title="清空日期，回到默认范围">清空</button>
+      </div>
+      <span class="fdiv" aria-hidden="true"></span>
+      <div class="artist-search">
+        <span class="search-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="13" height="13"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.2 15.2 20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <input id="artist-q" type="search" placeholder="艺人 / 团体"
+               aria-label="艺人搜索" autocomplete="off"
+               role="combobox" aria-expanded="false" aria-controls="artist-list">
+        <ul id="artist-list" role="listbox" hidden></ul>
+      </div>
+      <span class="fdiv" aria-hidden="true"></span>
       <div class="chipgroup" id="city-chips" role="group" aria-label="城市筛选"></div>
       <span class="fdiv" aria-hidden="true"></span>
       <div class="chipgroup" id="type-chips" role="group" aria-label="类型筛选"></div>
       <span class="fdiv" aria-hidden="true"></span>
       <div class="chipgroup" id="flag-chips" role="group" aria-label="独立标记筛选（可多选，多选为「与」关系）"></div>
+      <select id="venue-type-sel" aria-label="场地类型"></select>
       <select id="venue-sel" aria-label="场地"></select>
       <select id="kind-sel" aria-label="细分类型"></select>
       <select id="status-sel" aria-label="状态"></select>

@@ -206,11 +206,41 @@ poster_extraction   海报抽取记录</code></pre>
 </ul>
 <p>修法是 <code>.cell{min-width:0;min-height:0;overflow:hidden}</code> + <code>repeat(7, minmax(0,1fr))</code></p>
 <ul>
-<li><strong>筛选</strong>：城市（8）/ 标记（地偶·女子乐队·ACG）/ 时间范围 / 关键词</li>
+<li><strong>日期选择</strong>：<code>从 / 到</code> 两个原生日期控件 + 「清空」回到本周预设。</li>
+</ul>
+<p>用 <code>change</code> 而不是 <code>input</code> —— 日期控件在用户逐步点年月时也会触发 <code>input</code>， 每次都重查会让月历闪烁。改到非法区间（结束早于开始）时<strong>不静默交换</strong>， 而是提示并拒绝提交（否则用户会看到自己没输入过的值）。</p>
+<ul>
+<li><strong>艺人搜索</strong>：带自动补全（<code>js/artists.js</code>）。</li>
+<li>与顶栏关键词框 <strong><code>q</code> 不是一回事</strong>：<code>q</code> 只搜标题，艺人搜索搜<strong>演出阵容</strong>。</li>
+</ul>
+<p>实测「恋音契约」标题只匹配 1 场，阵容匹配 2 场。</p>
+<ul>
+<li>候选来自 <code>/api/artists?with_upcoming=1</code> —— <strong>只返回有未来场次的艺人</strong>。</li>
+</ul>
+<p>库里 349 个艺人大部分没有 upcoming，全返回没法用。</p>
+<ul>
+<li>排序（踩了两次坑才定）：<strong>名字前缀命中 &gt; 垂类 kind &gt; 场次多 &gt; 名字</strong>。</li>
+</ul>
+<p>只按名字排会返回「8bite / 1CEKary…」这类英文名摇滚乐队； 只按场次排也不行 —— <code>order_by(name).limit(200)</code> 会在排序前就截断， 垂类艺人根本进不了候选集。所以是<strong>先全取 → 统计 → 排序 → 才截断</strong>。</p>
+<ul>
+<li>静态站没有后端，就地聚合快照里的 <code>lineup</code> 当候选（静态站也能搜）。</li>
+<li><strong>场地类型筛选</strong>：含「★ 免费场地」（展开为 mall / park / campus 三类）。</li>
+</ul>
+<p>放在后端展开而不是前端，是为了让 <strong>ICS 订阅、CSV 导出、静态站</strong>口径一致。</p>
+<ul>
+<li><strong>其他筛选</strong>：城市（8）/ 标记（地偶·女子乐队·ACG）/ 时间预设 / 关键词</li>
 <li><strong>详情</strong>：阵容、票务、来源链接、地图跳转</li>
 <li><strong>静态站横幅</strong>：说明这是数据快照、数据时间、以及为什么不能更新</li>
 </ul>
-<h3>4.3 发布口径（<strong>与 ACG 有关 + 满足任一演出条件</strong>）</h3>
+<p>所有筛选状态<strong>写入 URL</strong>：可分享、可收藏、刷新不丢、支持前进后退。</p>
+<h3>4.3 场地类型与免费场地</h3>
+<p><code>venue_type</code> 分 10 类（<code>app/normalize/venue_type.py</code>）： <code>livehouse</code> / <code>mall</code> / <code>park</code> / <code>convention</code> / <code>theater</code> / <code>cinema</code> / <code>bar</code> / <code>campus</code> / <code>studio</code> / <code>unknown</code>。</p>
+<p><strong>免费场地</strong>（<code>FREE_TYPES = {mall, park, campus}</code>）是本项目的重点： 这类场地<strong>不上售票平台</strong>，只能靠小红书、微博发现 （实测线索：「广州地王广场也有地偶看？！」「陈家祠站旁有地偶看！」）。</p>
+<blockquote>⚠️ 规则顺序踩过的坑：<code>campus</code> 里的「中大」会命中 「MAO Livehouse 广州<strong>中大</strong>店」，把它误判成<strong>免费场地</strong> —— 实际它是要买票的 Livehouse。「大学城」同理命中「CH8蛙厂(大学城店)」。 修法：<strong>专业演出场地的规则排到 campus 之前</strong>，且 campus 不用歧义简称。</blockquote>
+<h3>4.4 漫展里的演出（「漫展 + 舞台」判据）</h3>
+<p>「漫展」同时在 <code>ACG_HINTS</code>（算 ACG）与 <code>_EXHIBITION_RE</code>（当非演出噪音）里， 于是「东莞萤火虫漫展 地下偶像舞台」<strong>两个标记都被清掉</strong>。但漫展里的 地偶/乐队舞台正是目标要收录的内容，所以：</p>
+<blockquote>标题同时出现「漫展/展会词」与「舞台/专场/演出/爬台/拼盘」时， 判定为<strong>真实演出</strong>，不被展会判据清掉，并打上 <code>漫展舞台</code> 标签 （便于区分「独立场次」与「漫展爬台」）。</blockquote>
+<h3>4.5 发布口径（<strong>与 ACG 有关 + 满足任一演出条件</strong>）</h3>
 <pre><code>大前提：这条内容与 ACG 有关（is_idol / is_girl_band / is_acg 任一为真）
 小前提（**或**关系，满足任一即发布）：
   a) 演出阵容里有地偶 / ACG 乐队 / 女子乐队   ← 最可靠

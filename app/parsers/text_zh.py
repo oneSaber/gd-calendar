@@ -796,6 +796,17 @@ def parse_prices(text: str) -> tuple[float | None, float | None, bool, list[Tick
 # 城市 / 场地
 # --------------------------------------------------------------------------- #
 
+# 「漫展 + 演出」的判据：漫展场馆里的**舞台/专场/演出**是真实演出，
+# 不该被展会判据清掉。
+# ⚠️ 实测坑：「漫展」同时在 ACG_HINTS（算 ACG）和 _EXHIBITION_RE（当噪音），
+# 于是「东莞萤火虫漫展 地下偶像舞台」两个标记都被清掉 —— 而目标明确要求
+# 「包含漫展」，漫展里的地偶/乐队舞台正是要收录的内容。
+_PERF_IN_MALL_RE = re.compile(
+    r"舞台|专场|演出|出演|拼盘|演唱会|音乐节|live|Live|LIVE|"
+    r"爬台|oneman|OneMan|ONEMAN|公演|生诞|生日会|ani\s?song|anisong",
+    re.I,
+)
+
 _UNDECIDED_WORDS = ("待定", "待公布", "秘密", "未定", "TBD", "tbd", "？？", "??", "待确认")
 
 # ⚠️ 微博「展开全文」的截断标记，**不是**场地名。
@@ -1531,7 +1542,14 @@ def classify(
             ):
                 _has_known_group = True
                 break
-    if not _has_known_group and (
+    # ⚠️ **漫展里的舞台是演出**：标题同时出现「漫展/展会词」和「舞台/专场/演出」
+    #    时判定为**真实演出**，不被展会判据清掉。
+    #    实测：「东莞萤火虫漫展 地下偶像舞台」原本两个标记都被清 —— 但目标
+    #    明确要求「包含漫展」，漫展里的地偶/乐队舞台正是要收录的内容。
+    _perf_in_expo = bool(_EXHIBITION_RE.search(hay)) and bool(
+        _PERF_IN_MALL_RE.search(hay)
+    )
+    if not _has_known_group and not _perf_in_expo and (
         _EXHIBITION_RE.search(hay)
         or _NON_EVENT_NOISE_RE.search(hay)
         or _WEATHER_RE.search(hay)
@@ -1539,6 +1557,9 @@ def classify(
         is_idol = False
         if "非演出" not in tags:
             tags.append("非演出")
+    elif _perf_in_expo and "漫展舞台" not in tags:
+        # 标记出来，便于前端/复核时区分「独立场次」与「漫展爬台」
+        tags.append("漫展舞台")
 
 
     # ---- 女子乐队：命中 + 不是偶像场 ----

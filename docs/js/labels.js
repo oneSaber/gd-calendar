@@ -8,6 +8,26 @@
 /** 城市枚举（设计稿 §0 覆盖范围）。空串 = 全省。 */
 export const CITIES = ['广州', '深圳', '佛山', '东莞', '珠海', '中山', '惠州', '汕头'];
 
+/**
+ * 场地类型 → 中文标签。
+ *
+ * 「免费场地」是本项目的重点：商场中庭 / 公园 / 高校这类场地**不上售票平台**，
+ * 只能靠小红书、微博发现。所以 `free` 做成独立筛选项 ——
+ * 后端把它展开为 mall / park / campus 三类，口径与 ICS、CSV 导出一致。
+ */
+export const VENUE_TYPES = [
+  { value: '', label: '全部场地' },
+  { value: 'free', label: '★ 免费场地' },
+  { value: 'livehouse', label: 'Livehouse' },
+  { value: 'convention', label: '会展 / 漫展馆' },
+  { value: 'theater', label: '剧院 / 剧场' },
+  { value: 'mall', label: '商场 / 广场' },
+  { value: 'park', label: '公园 / 户外' },
+  { value: 'campus', label: '高校 / 文化馆' },
+  { value: 'bar', label: '酒吧 / Live Bar' },
+  { value: 'unknown', label: '类型未知' },
+];
+
 /** 场次状态 → 中文 + 徽标样式。dashed=true 表示虚线边框（待确认）。 */
 export const STATUS = {
   announced: { label: '待开票', cls: 'ghost' },
