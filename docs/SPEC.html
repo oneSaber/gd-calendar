@@ -52,9 +52,9 @@
 <tr><td>2</td><td><strong>豆瓣同城</strong></td><td>官方 RSS + <code>feedparser</code></td><td>101</td><td>3/101（3.0%）</td><td>✅ 补充</td></tr>
 <tr><td>3</td><td><strong>B站会员购</strong></td><td>CDP 渲染 + 点击 + XHR 拦截</td><td>31</td><td>2/31（6.5%）</td><td>✅ 补充</td></tr>
 <tr><td>4</td><td><strong>微博</strong></td><td>CDP 移动端搜索页 + XHR 拦截</td><td>14</td><td><strong>11/14（78.6%）</strong></td><td>✅ 垂类情报</td></tr>
-<tr><td>5</td><td><strong>小红书</strong></td><td>持久 profile 登录态 + 读公开列表</td><td>0（<strong>未入库</strong>）</td><td>—</td><td>⚠️ 半自动</td></tr>
+<tr><td>5</td><td><strong>小红书</strong></td><td>持久 profile 登录态 + 读列表 + <strong>读正文</strong></td><td>待入库</td><td>—</td><td>✅ 已验证可读</td></tr>
 </table>
-<blockquote><strong>阵容覆盖为什么最关键</strong>：发布口径要求「演出名单必须能证明是演出」 （见 §4.3）。秀动 86% 的阵容覆盖是整个垂类判定的命脉； 豆瓣几乎不给阵容（3%），所以它主要贡献<strong>标题与场地</strong>。</blockquote>
+<blockquote><strong>阵容覆盖为什么最关键</strong>：发布口径要求「演出名单必须能证明是演出」 （见 §4.3）。秀动 86% 的阵容覆盖是整个垂类判定的命脉； 豆瓣几乎不给阵容（3%），所以它主要贡献<strong>标题与场地</strong>。  <strong>小红书为什么特别</strong>：它是唯一同时提供<strong>免费场地排期</strong>（地王广场这类 不上售票平台的场次）与<strong>团体图鉴</strong>（现役团体总览）的源。 正文可读后，它是补垂类覆盖的关键。</blockquote>
 <h3>1.2 数据源能力矩阵</h3>
 <table>
 <tr><th>源</th><th>无登录可访问</th><th>标题</th><th>时间</th><th>场地</th><th>阵容</th><th>票价</th><th>海报</th></tr>
@@ -68,15 +68,16 @@
 <p>这些结论都是实测得到的，不要重复尝试：</p>
 <table>
 <tr><th>源</th><th>结论</th><th>实测依据</th></tr>
-<tr><td><strong>小红书笔记正文</strong></td><td>❌ 自动读取不可行</td><td>①登录态直接 <code>nav()</code> 到 <code>/explore/&lt;id&gt;</code> → <strong>404</strong>；②搜到后点 DOM 链接（含坐标点击）→ 卡片坐标 <code>0,0</code>，点击仍 404；③任意点开第一个卡片 → 404，弹层 <code>role=dialog</code> 始终为 0</td></tr>
-<tr><td><strong>微博账号主页</strong></td><td>❌ 不可用</td><td><code>/api/container</code> → <strong>432</strong>；<code>/u/&lt;uid&gt;</code> HTML 返 200 但为 JS 壳（无 <code>$render_data</code>／<code>mblog</code>／<code>card_type</code>）</td></tr>
-<tr><td><strong>中国的 Fandom Wiki</strong></td><td>❌ 网络不可达</td><td><code>chinaidols.fandom.com</code>（中文地偶 Wiki，含结构化活动记录）HTTP 与浏览器均 <code>ERR_CONNECTION_TIMED_OUT</code></td></tr>
-<tr><td><strong>微信公众号</strong></td><td>❌ 已排除</td><td>维护者明确要求不做；且微信侧有验证码拦截（环境异常页）</td></tr>
-<tr><td><strong>抖音</strong></td><td>❌ 登录墙</td><td>项目早期已放弃</td></tr>
-<tr><td><strong>B站会员购翻页</strong></td><td>⚠️ 无意义</td><td>广州 <code>total=17</code>、<code>pagesize=16</code> —— 「下一页」点不到不是 bug，是<strong>只有一页</strong></td></tr>
-<tr><td><strong>B站票务接口直调</strong></td><td>❌ 被拒</td><td><code>listV2</code> 直调返回 <code>success=false</code>／<code>请求非法</code>，参数需浏览器上下文生成</td></tr>
-<tr><td><strong>B站 UP 主搜索</strong></td><td>⚠️ 未跑通</td><td><code>render()</code> 文本里<strong>有</strong> mid，但结果页不发可拦截的 XHR，且 <code>BrowserFetcher</code> 无 <code>cmd</code> 方法读不了 DOM 属性</td></tr>
+<tr><td>~~小红书笔记正文~~</td><td>✅ <strong>可读（之前的结论是错的）</strong></td><td>真正原因只有一个：<strong>缺 <code>xsec_token</code></strong>。<code>/explore/&lt;id&gt;</code> 不带 token → <strong>404</strong>；带上 token（token 就在搜索页 HTML 里）→ 正文可读。见下方说明</td></tr>
+<tr><td>微博账号主页</td><td>❌ 不可用</td><td><code>/api/container</code> → <strong>432</strong>；<code>/u/&lt;uid&gt;</code> 返 200 但是 JS 壳（无 <code>$render_data</code>/<code>mblog</code>）</td></tr>
+<tr><td>中国的 Fandom Wiki</td><td>❌ 网络不可达</td><td><code>chinaidols.fandom.com</code> HTTP 与浏览器均 <code>ERR_CONNECTION_TIMED_OUT</code></td></tr>
+<tr><td>微信公众号</td><td>❌ 已排除</td><td>维护者要求不做；微信侧另有验证码拦截</td></tr>
+<tr><td>抖音</td><td>❌ 登录墙</td><td>早期已放弃</td></tr>
+<tr><td>B站会员购翻页</td><td>⚠️ 无意义</td><td>广州 <code>total=17</code>、<code>pagesize=16</code> → 只有一页</td></tr>
+<tr><td>B站票务接口直调</td><td>❌ 被拒</td><td><code>listV2</code> 直调 <code>success=false</code>／<code>请求非法</code></td></tr>
+<tr><td>B站 UP 主搜索</td><td>⚠️ 未跑通</td><td>结果页不发可拦截 XHR；<code>BrowserFetcher</code> 无 <code>cmd</code> 读不了 DOM</td></tr>
 </table>
+<blockquote><strong>⚠️ 一次值得记录的误判</strong>：我曾把小红书笔记正文判定为「防抓取、不可自动读取」， 依据是直接 <code>nav()</code> 到 <code>/explore/&lt;id&gt;</code> 得到 404。 实测真相（<code>scripts/diag_xhs_why.py</code> 的三组对照）：  | 实验 | 做法 | 结果 | | --- | --- | --- | | A | <code>/explore/&lt;id&gt;</code>（<strong>不带</strong> token） | ❌ 404 | | B | 带 <code>?xsec_token=…</code> <strong>直接导航</strong> | ✅ 正文可读 | | C | 在搜索页里点击卡片 | ✅ 正文可读 |  <strong>根因是缺 <code>xsec_token</code></strong>（token 随搜索结果下发，可以采集）， 与「防抓取」无关，也<strong>不需要</strong>模拟点击。 另一个坑：同一条笔记在页面里有<strong>两个</strong>链接 （<code>/explore/&lt;id&gt;</code> 无 token、<code>/search_result/&lt;id&gt;?xsec_token=…</code> 有 token）， 按 id 去重时若「先出现者胜」，会全部丢掉 token —— 实测 20 条笔记 0 条带 token。 <strong>教训</strong>：结论要写成「在什么条件下不行」，而不是「不行」。</blockquote>
 <h3>1.4 B站的硬限制</h3>
 <ul>
 <li><strong>城市选择器只有 10 个城市</strong>（全国/北京/上海/杭州/广州/深圳/武汉/天津/成都/南京</li>
@@ -266,14 +267,20 @@ poster_extraction   海报抽取记录</code></pre>
 </table>
 <h3>5.4 已知限制（如实记录）</h3>
 <ol>
-<li><strong>小红书笔记正文无法读取</strong> → 88 条线索只能人工确认</li>
+<li><strong>小红书正文里的排期多为图片</strong>：正文可读（已修），但作者常把</li>
 </ol>
-<p>（<code>scripts/xhs_make_leads.py</code> 产出 <code>data/xhs_leads.md</code>）</p>
+<p>完整名单/排期「放进图里」，文字只有元信息 —— 要拿到全部团体名 还需要读图（OCR）或从其他源的阵容汇总</p>
 <ol>
-<li><strong>小红书数据未入库</strong>：采集器能跑，但线索需人工确认后才进库</li>
-<li><strong>channel 表为空</strong>：账号已发现（能发现 UID），但未持久化到频道表</li>
+<li><strong>小红书数据未入库</strong>：能采集（含正文），但正文是非结构化中文，</li>
+</ol>
+<p>需要解析规则或人工确认才能进库</p>
+<ol>
+<li><strong>channel 表为空</strong>：账号已发现（能拿到 UID），但未持久化到频道表</li>
 <li><strong>微博解析仍有噪音</strong>：抽奖/福利贴可能被当活动</li>
-<li><strong>免费场地排期渠道未找到</strong>（地王广场等）</li>
+<li><strong>免费场地排期渠道未找到</strong>：地王广场等商城/公共空间的官方排期</li>
+</ol>
+<p>（微博/小红书都是二手信息）</p>
+<ol>
 <li><strong>「漫展」同时在 <code>ACG_HINTS</code> 与 <code>_EXHIBITION_RE</code> 里</strong> —— 规则有自相矛盾，</li>
 </ol>
 <p>导致萤火虫漫展的地偶舞台不带 ACG 标记</p>
