@@ -26,11 +26,14 @@ import * as store from './state.js';
 import * as view from './render.js';
 import * as updateCtl from './update.js';
 import { buildIcs, icsFilename } from './ics.js';
+import { createArtistPicker } from './artists.js';
 
 // 供 index.html 的启动守卫判断模块是否加载成功（file:// 下 ES 模块会被拦截）
 window.__GD_READY__ = true;
 
 const dom = {};
+/** 艺人搜索组件实例（在 wireEvents 里创建；syncControls 会用到） */
+let artistPicker = null;
 let S = null;                     // 当前筛选/视图状态
 const itemIndex = new Map();      // occurrence.id -> item（详情面板就地取数，避免重复请求）
 const countsCache = new Map();    // `${month}|${city}` -> counts
@@ -154,6 +157,13 @@ function cacheDom() {
   dom.statusSel = id('status-sel');
   dom.priceChip = id('price-chip');
   dom.qInput = id('q');
+  // 日期选择（目标要求「支持日期选择」）
+  dom.dateFrom = id('date-from');
+  dom.dateTo = id('date-to');
+  dom.dateClear = id('date-clear');
+  // 艺人搜索（目标要求「支持艺人搜索」）
+  dom.artistInput = id('artist-q');
+  dom.artistList = id('artist-list');
   dom.rangeSeg = id('range-seg');
   dom.viewSeg = id('view-seg');
   dom.main = id('main');
@@ -204,6 +214,47 @@ function bindEvents() {
   dom.statusSel.addEventListener('change', () => update({ status: dom.statusSel.value }));
   dom.venueSel.addEventListener('change', () => update({ venue_id: dom.venueSel.value }));
   dom.qInput.addEventListener('input', debounce(onSearchInput, 350));
+
+  // ---- 日期选择（目标要求「支持日期选择」）----
+  // `change` 而不是 `input`：日期控件在用户逐步点年月时也会触发 input，
+  // 每次都重查会让月历闪烁。change 只在确定日期后触发一次。
+  const onDate = (which) => () => {
+    const from = which === 'from' ? dom.dateFrom.value : S.from;
+    const to = which === 'to' ? dom.dateTo.value : S.to;
+    if (from && to && to < from) {
+      // 不静默交换（用户会看到自己没输入的值），只是不提交这个非法组合
+      toast('结束日期不能早于开始日期');
+      return;
+    }
+    S = store.withRange(S, from, to);
+    store.writeState(S);
+    syncControls();
+    refresh();
+  };
+  if (dom.dateFrom) dom.dateFrom.addEventListener('change', onDate('from'));
+  if (dom.dateTo) dom.dateTo.addEventListener('change', onDate('to'));
+  if (dom.dateClear) {
+    dom.dateClear.addEventListener('click', () => {
+      // 清空 = 回到「本周」预设，而不是留一个空区间
+      S = store.withPreset({ ...S, from: '', to: '' }, 'week');
+      store.writeState(S);
+      syncControls();
+      refresh();
+    });
+  }
+
+  // ---- 艺人搜索（目标要求「支持艺人搜索」）----
+  if (dom.artistInput) {
+    artistPicker = createArtistPicker({
+      input: dom.artistInput,
+      list: dom.artistList,
+      isStatic: api.isStatic,
+      onChange: (name) => {
+        // 输入过程中用 replace 不污染历史；这里也保持 replace（连续输入）
+        update({ artist: name }, { mode: 'replace' });
+      },
+    });
+  }
 
   window.addEventListener('popstate', () => {
     // 浏览器前进/后退：重新读 URL 并整体重绘
@@ -399,6 +450,11 @@ function syncControls() {
   dom.priceChip.setAttribute('aria-pressed', S.price_max ? 'true' : 'false');
   dom.priceChip.textContent = S.price_max ? `¥${S.price_max} 以下` : '价格不限';
   if (document.activeElement !== dom.qInput) dom.qInput.value = S.q;
+  // 日期选择控件回填（不在编辑时才写，避免打断输入）
+  if (dom.dateFrom && document.activeElement !== dom.dateFrom) dom.dateFrom.value = S.from || '';
+  if (dom.dateTo && document.activeElement !== dom.dateTo) dom.dateTo.value = S.to || '';
+  // 艺人搜索框回填
+  if (artistPicker) artistPicker.setValue(S.artist || '');
   dom.demoBanner.hidden = !S.demo;
 }
 
@@ -414,6 +470,8 @@ function baseFilters() {
     status: S.status,
     price_max: S.price_max,
     q: S.q,
+    // 艺人搜索：搜阵容（后端 artist_q / 静态站本地过滤同名参数）
+    artist: S.artist,
   };
 }
 
@@ -422,7 +480,7 @@ function listFilters() {
 }
 
 function filterKey() {
-  return [S.city, S.kind, S.is_idol, (S.flags || []).join('+'), S.venue_id, S.status, S.price_max, S.q, S.demo ? 'demo' : ''].join('|');
+  return [S.city, S.kind, S.is_idol, (S.flags || []).join('+'), S.venue_id, S.status, S.price_max, S.q, S.artist, S.demo ? 'demo' : ''].join('|');
 }
 
 async function getCounts(month, city) {

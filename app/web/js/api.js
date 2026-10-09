@@ -128,6 +128,9 @@ export function occurrenceParams(filters = {}, extra = {}) {
     flag: flags.length ? flags.map((f) => (f === 'girl_band' ? '女子乐队' : 'acg')) : undefined,
     venue_id: filters.venue_id,
     artist_id: filters.artist_id,
+    // 艺人/团体名搜索：搜的是**演出阵容**，与 `q`（只搜标题）不同。
+    // 实测「恋音契约」标题匹配 1 场、阵容匹配 2 场。
+    artist_q: filters.artist,
     price_max: filters.price_max,
     status: filters.status,
     q: filters.q,
@@ -199,6 +202,43 @@ export async function loadVenues({ demo = false } = {}) {
     return { items: Array.isArray(data.items) ? data.items : [], demo: false, static: true };
   }
   const data = await getJSON('/api/venues', {});
+  return { items: Array.isArray(data.items) ? data.items : [], demo: false };
+}
+
+/**
+ * 艺人搜索（自动补全用）。
+ *
+ * 静态站**没有后端**，但场次快照里带了 `lineup`（阵容），
+ * 所以可以就地聚合出「有场次的艺人」—— 这样静态站也能用艺人搜索，
+ * 只是候选来自快照而不是数据库全量。
+ *
+ * @param {{q?: string, withUpcoming?: boolean, limit?: number}} opts
+ */
+export async function loadArtists({ q = '', withUpcoming = false, limit = 12 } = {}) {
+  const kw = String(q || '').trim().toLowerCase();
+  if (STATIC) {
+    const bundle = await getStaticJSON('occurrences.json');
+    const all = Array.isArray(bundle.items) ? bundle.items : [];
+    const counter = new Map();
+    all.forEach((it) => {
+      (it.lineup || []).forEach((a) => {
+        const name = String((a && a.name) || '');
+        if (!name) return;
+        const cur = counter.get(name) || { name, upcoming: 0, kind: '' };
+        cur.upcoming += 1;
+        counter.set(name, cur);
+      });
+    });
+    let items = [...counter.values()];
+    if (kw) items = items.filter((a) => a.name.toLowerCase().includes(kw));
+    items.sort((a, b) => b.upcoming - a.upcoming || a.name.localeCompare(b.name));
+    return { items: items.slice(0, limit), static: true };
+  }
+  const data = await getJSON('/api/artists', {
+    q: q || undefined,
+    with_upcoming: withUpcoming ? 'true' : undefined,
+    limit: limit || 200,
+  });
   return { items: Array.isArray(data.items) ? data.items : [], demo: false };
 }
 

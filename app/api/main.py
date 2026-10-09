@@ -123,6 +123,9 @@ async def list_occurrences(
     ),
     venue_id: int | None = None,
     artist_id: int | None = None,
+    artist_q: str | None = Query(
+        None, description="按艺人/团体名搜索（含阵容里的原始写法）"
+    ),
     price_max: float | None = None,
     status: str | None = None,
     q: str | None = None,
@@ -142,7 +145,7 @@ async def list_occurrences(
         date_from=date_from, date_to=date_to, city=city, kind=kind,
         is_idol=is_idol, is_girl_band=is_girl_band, is_acg=is_acg,
         flags_all=flag,
-        venue_id=venue_id, artist_id=artist_id,
+        venue_id=venue_id, artist_id=artist_id, artist_q=artist_q,
         price_max=price_max, status=status, q=q,
         page=page, page_size=page_size, include_finished=include_finished,
         exclude_other=exclude_other,
@@ -212,9 +215,16 @@ async def get_artists(
     q: str | None = None,
     kind: str | None = None,
     limit: int = Query(200, ge=1, le=1000),
+    with_upcoming: bool = Query(
+        False, description="只返回有未来场次的艺人（前端搜索框用）"
+    ),
     session: AsyncSession = Depends(get_session),
 ) -> ArtistListOut:
-    return ArtistListOut(items=await service.list_artists(session, q, kind, limit))
+    return ArtistListOut(
+        items=await service.list_artists(
+            session, q, kind, limit, with_upcoming=with_upcoming
+        )
+    )
 
 
 @app.get("/api/stats", response_model=StatsOut, tags=["meta"])

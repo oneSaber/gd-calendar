@@ -102,6 +102,15 @@
 - profile：`%LOCALAPPDATA%\gd-calendar\xhs-profile\`
 - cookie 清单：`%LOCALAPPDATA%\gd-calendar\xhs-cookies.json`（只导出，日志里不打印值）
 
+> **会话隔离（别跳过这条）**：脚本**只连 `creator.xiaohongshu.com`**；
+> 如果浏览器里没有创作者中心标签页，它会用 `PUT /json/new` **自己开一个**，
+> 不会去占用你正在看的 `www.xiaohongshu.com` 标签页。
+> 实测这个 profile 里同时开着 14 个页面（explore / 搜索页），早先「取第一个页面」的写法
+> 会让自动化跑去填用户正在浏览的那一页 —— 现在 `status` 会先把所有标签页列出来，
+> 并标出自动化会连哪一个。
+> 另一个坑：`/json/new?` 后面**整串就是 URL，不能 quote**，编码过的 `https%3A%2F%2F…`
+> 会被当成相对路径，开出来是 `about:blank`。
+
 ### 实测踩到的四个坑（都已在脚本里处理）
 
 | 现象 | 真实原因 | 处理 |

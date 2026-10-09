@@ -77,29 +77,51 @@ def wait_port(port: int = PORT, timeout: float = 25.0) -> bool:
     return False
 
 
-class Session:
-    """一个页面 target 上的 CDP 会话。"""
+def new_page(port: int = PORT, url: str = PUBLISH_URL) -> dict:
+    """自己开一个标签页（PUT /json/new），而不是占用别人正在看的页面。
 
-    def __init__(self, port: int = PORT, prefer: str = "") -> None:
+    ⚠️ 这里**不能**对 URL 做 quote：Chrome 的 `/json/new?` 是「问号后面整串就是 URL」，
+    编码过的 `https%3A%2F%2F…` 会被当成相对路径，结果是 about:blank（实测踩过）。
+    """
+    req = urllib.request.Request(f"http://127.0.0.1:{port}/json/new?{url}", method="PUT")
+    return json.loads(urllib.request.urlopen(req, timeout=15).read())
+
+
+class Session:
+    """一个页面 target 上的 CDP 会话。
+
+    ⚠️ 只认 `creator.xiaohongshu.com`（创作者中心）。
+    浏览器里可能同时开着用户自己在看的 `www.xiaohongshu.com` 标签页
+    （实测出现过 13 个 explore / 搜索页），如果按「取第一个页面」的写法，
+    自动化就会跑去填用户正在看的那个页面 —— 所以这里**只挑创作者中心，
+    挑不到就自己新开一个**，绝不劫持其它标签页。
+    """
+
+    def __init__(self, port: int = PORT, prefer: str = "creator.xiaohongshu.com",
+                 allow_any: bool = False) -> None:
         self.port = port
+        self.created = False
+        pages = [t for t in list_targets(port)
+                 if t.get("type") == "page" and t.get("webSocketDebuggerUrl")]
         page = None
-        for t in list_targets(port):
-            if t.get("type") != "page" or not t.get("webSocketDebuggerUrl"):
-                continue
-            if prefer and prefer not in (t.get("url") or ""):
-                continue
-            page = t
-            break
-        if page is None:
-            pages = [t for t in list_targets(port)
-                     if t.get("type") == "page" and t.get("webSocketDebuggerUrl")]
-            if not pages:
-                raise RuntimeError("浏览器里没有可用的页面 target")
+        if prefer:
+            page = next((t for t in pages if prefer in (t.get("url") or "")), None)
+        if page is None and allow_any:
             page = pages[0]
+        if page is None:
+            print(f"（没有创作者中心标签页，自己开一个；当前共 {len(pages)} 个页面）")
+            page = new_page(port)
+            self.created = True
         self.ws = WS(page["webSocketDebuggerUrl"], timeout=60.0)
         self._id = 0
         self.cmd("Page.enable")
         self.cmd("Runtime.enable")
+        if self.created:
+            # 新标签页兜底导航一次（/json/new 的 URL 偶尔不生效）
+            time.sleep(0.6)
+            if "creator.xiaohongshu.com" not in str(self.ev("location.href") or ""):
+                self.cmd("Page.navigate", {"url": PUBLISH_URL})
+                time.sleep(3)
 
     def cmd(self, method: str, params: dict | None = None, timeout: float = 60.0) -> dict:
         self._id += 1
@@ -437,6 +459,11 @@ def cmd_launch(args) -> int:
 
 
 def cmd_status(args) -> int:
+    pages = [t for t in list_targets(PORT) if t.get("type") == "page"]
+    print(f"浏览器里共 {len(pages)} 个标签页：")
+    for t in pages[:15]:
+        mark = "  ← 自动化会连这个" if "creator.xiaohongshu.com" in (t.get("url") or "") else ""
+        print(f"  - {(t.get('url') or '')[:78]}{mark}")
     s = Session()
     ok, names = s.logged_in()
     print(f"URL    : {s.url()}")

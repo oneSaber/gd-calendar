@@ -8,7 +8,7 @@ from __future__ import annotations
 import datetime as dt
 from dataclasses import dataclass
 
-from sqlalchemy import func, select
+from sqlalchemy import Text, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -49,6 +49,9 @@ class OccurrenceQuery:
     flags_all: list[str] | None = None
     venue_id: int | None = None
     artist_id: int | None = None
+    # 按**艺人名字**搜索（比 artist_id 更适合前端搜索框：
+    # 用户输入的是名字，且要匹配阵容里的原始写法）
+    artist_q: str | None = None
     price_max: float | None = None
     status: str | None = None
     q: str | None = None
@@ -193,6 +196,25 @@ async def query_occurrences(
             OccurrenceArtist.artist_id == q.artist_id
         )
         stmt = stmt.where(Occurrence.id.in_(sub))
+    if q.artist_q:
+        # ⚠️ 匹配**两处**，否则会漏：
+        #   1. `artist.name` —— 已知艺人（走 occurrence_artist 关联）
+        #   2. `occurrence_artist.artist_raw` —— 阵容里的**原始写法**。
+        #      实测同一团体在不同源里写法不一（「恋音契约」/「戀音契約」、
+        #      「月匙Moon-Key」/「月匙 Moon-Key」），只查规范名会查不到。
+        aq = f"%{q.artist_q.strip()}%"
+        by_name = (
+            select(OccurrenceArtist.occurrence_id)
+            .join(Artist, Artist.id == OccurrenceArtist.artist_id, isouter=True)
+            .where(
+                or_(
+                    Artist.name.ilike(aq),
+                    Artist.aliases.cast(Text).ilike(aq),
+                    OccurrenceArtist.artist_raw.ilike(aq),
+                )
+            )
+        )
+        stmt = stmt.where(Occurrence.id.in_(by_name))
 
     total = (
         await session.execute(select(func.count()).select_from(stmt.subquery()))
@@ -376,22 +398,93 @@ async def list_venues(session: AsyncSession, city: str | None = None, limit: int
 
 
 async def list_artists(
-    session: AsyncSession, q: str | None = None, kind: str | None = None, limit: int = 200
+    session: AsyncSession,
+    q: str | None = None,
+    kind: str | None = None,
+    limit: int = 200,
+    *,
+    with_upcoming: bool = False,
 ) -> list[ArtistOut]:
+    """艺人列表。
+
+    ⚠️ `with_upcoming=True` 时只返回**有未来场次**的艺人，并按场次数排序 ——
+    这是给前端「艺人搜索」用的：用户输入时要看到**能点进去看演出**的候选，
+    而不是库里 350 个大部分没有 upcoming 的名字。
+    """
+    from app.utils import now_cst
+
     stmt = select(Artist).where(Artist.status == "active")
     if kind:
         stmt = stmt.where(Artist.kind == kind)
     if q:
-        stmt = stmt.where(Artist.name.ilike(f"%{q}%"))
-    rows = (await session.execute(stmt.order_by(Artist.name.asc()).limit(limit))).scalars().all()
-    return [
+        # ⚠️ 人名与别名都要搜：实测同一团有简繁/带空格等多种写法
+        aq = f"%{q.strip()}%"
+        stmt = stmt.where(
+            or_(
+                Artist.name.ilike(aq),
+                Artist.aliases.cast(Text).ilike(aq),
+            )
+        )
+
+    # ⚠️ 这里**不能**加 order_by + limit 截断：`with_upcoming` 的排序要等
+    # 统计完场次才能做，先按名字截 200 条会把垂类艺人挤掉
+    # （实测库里 349 个艺人，按名字排的话「8bite / 1CEKary…」这种
+    #  英文名乐队会占满前 200，垂类团体根本进不了候选集）。
+    # 所以先全取，再统计、排序、截断。数据量在千级以内，可接受。
+    rows = await session.execute(stmt)
+    artists = rows.scalars().all()
+    if not artists:
+        return []
+
+    # 统计每个艺人的未来/过去场次数
+    today = dt.datetime.combine(now_cst().date(), dt.time(0, 0), tzinfo=CST)
+    ids = [a.id for a in artists]
+    counts: dict[int, dict[str, int]] = {}
+    for aid, start_at in (
+        await session.execute(
+            select(OccurrenceArtist.artist_id, Occurrence.start_at)
+            .join(Occurrence, Occurrence.id == OccurrenceArtist.occurrence_id)
+            .where(OccurrenceArtist.artist_id.in_(ids))
+        )
+    ).all():
+        bucket = counts.setdefault(aid, {"upcoming": 0, "past": 0})
+        naive = start_at.replace(tzinfo=None) if start_at.tzinfo else start_at
+        if naive >= today.replace(tzinfo=None):
+            bucket["upcoming"] += 1
+        else:
+            bucket["past"] += 1
+
+    out = [
         ArtistOut(
             id=a.id, name=a.name, kind=a.kind, origin_city=a.origin_city,
             agency=a.agency, status=a.status, links=a.links or {},
             aliases=a.aliases or [],
+            upcoming=counts.get(a.id, {}).get("upcoming", 0),
+            past=counts.get(a.id, {}).get("past", 0),
         )
-        for a in rows
+        for a in artists
     ]
+    if with_upcoming:
+        out = [a for a in out if a.upcoming > 0]
+        # ⚠️ 排序很关键：默认只取前 8-12 条给自动补全用，如果按名字排，
+        # 垂类艺人（本项目的主角）会被普通乐队挤掉 —— 实测 limit=8 时
+        # 返回的全是「8bite / 1CEKary…」这种名字靠前的摇滚乐队。
+        #
+        # 优先级：
+        #   1. 名字**前缀**命中查询词（用户边打边搜时最符合直觉）
+        #   2. 垂类 kind（地偶/女子乐队/ACG）优先
+        #   3. 场次多的优先
+        #   4. 名字
+        kw = (q or "").strip().lower()
+
+        def rank(a: ArtistOut) -> tuple:
+            prefix = 0 if (kw and a.name.lower().startswith(kw)) else 1
+            vertical = 0 if a.kind in ("idol_group", "girl_band", "acg_unit") else 1
+            return (prefix, vertical, -a.upcoming, a.name)
+
+        out.sort(key=rank)
+    # 排序（含垂类优先）完成后才截断
+    return out[:limit]
 
 
 async def source_health(session: AsyncSession) -> list[SourceHealthOut]:

@@ -81,6 +81,14 @@ export function filterOccurrences(items, p = {}) {
     if (venueId && String((it.venue || {}).id || '') !== venueId) return false;
     if (artistId && !(it.lineup || []).some((a) => String(a.id || '') === artistId)) return false;
 
+    // 艺人搜索：**只匹配阵容**（与后端 `artist_q` 语义一致）。
+    // 注意与下面的 `q` 不同 —— `q` 是宽匹配（标题+场地+阵容+来源）。
+    const artistQ = String(p.artist_q || p.artist || '').trim().toLowerCase();
+    if (artistQ) {
+      const names = (it.lineup || []).map((a) => String((a && a.name) || ''));
+      if (!names.some((n) => n.toLowerCase().includes(artistQ))) return false;
+    }
+
     if (priceMax !== null && !Number.isNaN(priceMax)) {
       const pmin = it.price && it.price.min;
       // 价格未知的场次不因价格筛选被排除（与后端一致：宁多勿漏）
