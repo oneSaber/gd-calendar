@@ -25,24 +25,32 @@ class TestRosterData:
         nums = [r[0] for r in roster.ROSTER]
         assert len(nums) == len(set(nums)), "序号重复"
 
-    def test_known_gap_is_documented(self):
-        """⚠️ 图鉴共 53 组，本转录缺 #35–#43。
+    def test_is_complete(self):
+        """图鉴共 53 组，必须**全部**转录（无缺口）。
 
-        这个测试**故意断言缺口存在** —— 目的是让「补齐」这件事显式化：
-        哪天补上了，测试会失败，提醒更新这里的期望值。
+        ⚠️ 曾经这里是「故意断言缺口存在」（缺 #35–#43），用来提醒补齐。
+        补齐后改成这个断言 —— 它同样能防回归：漏了一组就挂。
+
+        当时误判缺口的经过值得记住：抓图混进了推荐流，而且我把
+        **两套提取结果**里的第 6 张搞混了（`t06_640x675` vs `s06`），
+        凭空造出一个不存在的缺口。教训：两套结果先 hash 比对。
         """
         nums = {r[0] for r in roster.ROSTER}
         missing = [n for n in range(1, 54) if n not in nums]
-        assert missing == [35, 36, 37, 38, 39, 40, 41, 42, 43], (
-            f"缺口变了：{missing} —— 若已补齐，请更新本测试与 docstring"
-        )
+        assert missing == [], f"缺号：{missing}"
+        assert len(roster.ROSTER) == 53
+
+    def test_member_total_matches_declaration(self):
+        """⭐ 最有力的正确性证据：人数合计必须等于图鉴声明的 282。
+
+        53 个独立数字加起来刚好对上报头，说明转录没有错行/漏行。
+        """
+        assert roster.member_sum() == roster.DECLARED_TOTAL_MEMBERS == 282
 
     def test_declared_totals(self):
-        """图鉴自己声明 53 组 / 282 人（转录子集应小于等于它）。"""
+        """图鉴自己声明 53 组 / 282 人。"""
         assert roster.DECLARED_TOTAL_GROUPS == 53
         assert roster.DECLARED_TOTAL_MEMBERS == 282
-        assert len(roster.ROSTER) <= roster.DECLARED_TOTAL_GROUPS
-        assert roster.member_sum() <= roster.DECLARED_TOTAL_MEMBERS
 
     @pytest.mark.parametrize("idx", [0, 5, 20, len(roster.ROSTER) - 1])
     def test_row_shape(self, idx):
@@ -71,6 +79,8 @@ class TestAliases:
         ("山海誓約", "山海誓约"),
         ("終焉藍星", "终焉蓝星"),
         ("水葬放課後", "水葬放课后"),
+        ("弥漫星雲", "弥漫星云"),
+        ("胧月", "朧月"),
     ])
     def test_traditional_has_simplified_alias(self, trad, simple):
         assert trad in roster.names(), f"{trad} 不在名册"

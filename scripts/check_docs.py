@@ -61,7 +61,7 @@ def main() -> None:
     checks = [
         ("SPEC 场次 426", "426" in spec, actual["场次"], 426),
         ("SPEC 活动 430", "430" in spec, actual["活动"], 430),
-        ("SPEC 艺人 344", "344" in spec, actual["艺人"], 344),
+        ("SPEC 艺人 352", "352" in spec, actual["艺人"], 352),
         ("SPEC 场地 148", "148" in spec, actual["场地"], 148),
         ("SPEC 垂类 22", "22" in spec, actual["垂类活动"], 22),
         ("SPEC 发布 18", "**18**" in spec, published, 18),
